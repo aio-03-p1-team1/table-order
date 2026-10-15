@@ -71,7 +71,7 @@ streamlit run admin/app.py --server.port 8502   # 관리자 (현재 토큰 입�
 - Advanced settings → **Secrets** (TOML, 최상위 키는 환경 변수로도 읽힙니다):
   - 둘 다 더미로만 시연: `DATA_SOURCE = "dummy"`
   - 관리자 더미 로그인 토큰 바꾸기: `ADMIN_TOKEN = "원하는-비밀번호"` (기본값 `change-me` 는 공개 배포 시 반드시 변경)
-  - 실제 백엔드 연결: `DATA_SOURCE = "api"` 와 `API_URL = "https://백엔드-주소"` (FastAPI 서버는 Streamlit Cloud 에서 돌릴 수 없으니 Render/Fly.io 등에 따로 배포하고, 그 `CORS_ORIGINS`·`PUBLIC_BASE_URL` 에 두 앱 주소를 넣으세요)
+  - 실제 백엔드 연결: `DATA_SOURCE = "api"` 와 `API_URL = "https://백엔드-주소"` (FastAPI 서버는 Streamlit Cloud 에서 돌릴 수 없으니 Render/Fly.io 등에 따로 배포하고, 그 `CORS_ORIGINS` 에 두 앱 주소를, `PUBLIC_BASE_URL` 에 그 백엔드의 공개 주소를 넣으세요. `PUBLIC_BASE_URL` 을 비우면 기본값 `localhost` 가 QR 에 들어가 휴대폰에서 열리지 않습니다)
 - `DATA_SOURCE=auto`(기본)에서 `127.0.0.1` 서버는 클라우드에서 닿지 않으므로 자동으로 더미로 동작합니다. 의도를 분명히 하려면 `dummy` 를 명시하세요.
 - 사용자 페이지는 `?table=12` 로 테이블을 지정합니다. 테이블별 QR 은 배포된 사용자 앱 주소 뒤에 이 값을 붙여 만드세요.
 

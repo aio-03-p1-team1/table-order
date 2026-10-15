@@ -88,6 +88,11 @@ def test_prod_refuses_default_secrets():
     create_app(settings(app_env="prod"))  # 비밀값을 바꾸면 기동 가능
 
 
+def test_prod_refuses_localhost_public_base_url():
+    with pytest.raises(RuntimeError):
+        create_app(settings(app_env="prod", public_base_url="http://localhost:8000"))
+
+
 def test_content_endpoints_match_frontend_dummy_shape(client):
     """서버 응답이 user/*_data.py 더미와 같은 모양이어야 화면이 변환 없이 쓴다."""
     import sys

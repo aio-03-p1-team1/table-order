@@ -22,6 +22,8 @@ def create_app(settings: Settings | None = None, sms_clock=None, sms_http=None) 
     settings = settings or get_settings()
     if settings.app_env == "prod" and DEFAULT_SECRET in (settings.jwt_secret, settings.admin_token):
         raise RuntimeError("APP_ENV=prod 에서는 JWT_SECRET 과 ADMIN_TOKEN 을 기본값(change-me)에서 바꿔야 합니다.")
+    if settings.app_env == "prod" and any(h in settings.public_base_url for h in ("localhost", "127.0.0.1")):
+        raise RuntimeError("APP_ENV=prod 에서는 PUBLIC_BASE_URL 을 휴대폰이 접속할 공개 주소로 설정해야 합니다 (QR 이 localhost 를 가리킵니다).")
     app = FastAPI(title="Table Order API", version="0.1.0")
     app.add_middleware(
         CORSMiddleware,

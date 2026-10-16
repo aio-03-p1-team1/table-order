@@ -7,6 +7,7 @@ from datetime import datetime
 import streamlit as st
 
 import server
+from shared import api
 from user.state.coupons import load_coupons
 from user.ui.common import KST
 
@@ -66,6 +67,27 @@ def restore_login():
         m = {"id": me["id"], "nickname": me["nickname"]}
         ss.member, ss.access_token = m, token
         _restore_members(token, m)
+
+
+def dev_auto_login():
+    """APP_ENV=dev 일 때만, 로그인 안 된 손님 앱을 모의 회원으로 자동 로그인시킨다 (개발 중 매번 QR 로그인을 거치지 않으려는 용도).
+
+    APP_ENV 가 dev 가 아니면(운영·미설정) 아무것도 하지 않는다. 세션당 한 번만 시도한다.
+    """
+    ss = st.session_state
+    if not api.is_dev() or ss.member or ss.get("_dev_login_tried"):
+        return
+    ss._dev_login_tried = True
+    event = server.dev_login(ss.table)
+    if event:
+        finish_login(event)  # 서버가 회원·로그인 기록을 DB 에 INSERT 하고 토큰을 준 경우
+        return
+    # 서버가 꺼져 있거나 DB INSERT 가 안 되는 경우에도 개발 화면은 로그인된 것처럼 보이게 임시 회원을 둔다.
+    # 토큰이 없어 서버 기능(쿠폰 저장 등)은 못 쓰지만 화면 흐름은 확인할 수 있다.
+    ss.member = {"id": 0, "nickname": server.DEV_NICKNAME}
+    ss.members = [{"id": 0, "nickname": server.DEV_NICKNAME, "at": datetime.now(KST).strftime("%H:%M"),
+                   "eligible": True, "prize": None}]  # eligible=True: 개발 중 룰렛을 바로 돌릴 수 있게 한다
+    ss.granted_ids = [0]
 
 
 def _restore_members(token, m):

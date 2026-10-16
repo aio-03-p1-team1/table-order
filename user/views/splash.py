@@ -6,7 +6,7 @@ from html import escape
 
 import streamlit as st
 
-from user import user_repository
+from shared import api
 from user.state import context as ctx
 from user.state.login import poll_login_once
 from user.state.roulette import spins_left
@@ -36,15 +36,14 @@ def render_splash():
                         '<div class="c">로그인하지 않아도<br>주문은 할 수 있어요.</div></div>')
             if st.button("➕ 다른 회원 로그인" if member else "📱 로그인", key="login_open"):
                 login_dialog("more")
-            # [개발 전용] DEV_TEST_BUTTON=1 일 때만 보이는 DB 쓰기·읽기 확인 버튼
-            if os.getenv("DEV_TEST_BUTTON") == "1" and st.button("🧪 DB 테스트", key="dev_db_test"):
-                res = user_repository.dev_db_test()
-                if res is None:
-                    st.error("서버에 연결할 수 없거나 서버의 DEV_TEST_BUTTON 이 꺼져 있습니다.")
-                elif res.get("result") == 1:
-                    st.success("1 (정상)")
-                else:
-                    st.error(f"0 (실패: {res.get('error', '읽은 값이 다름')})")
+            if os.getenv("DEV_TEST_BUTTON", "").strip().lower() in ("1", "true"):
+                if st.button("🧪 DB 테스트", key="dev_db_test"):
+                    try:
+                        result = ctx.REPO.db_test()
+                        st.success(str(result["result"]))
+                    except (api.ApiError, api.ApiUnavailable) as e:
+                        # 개발자가 연결·설정 문제를 바로 찾을 수 있도록 실패 이유를 버튼 옆에 표시한다.
+                        st.error(f"DB 테스트 실패: {e}")
         with st.container(key="start_cta"):
             st.button("🍴 회원 주문  ›" if member else "🍴 비회원 주문  ›", type="primary", width="stretch",
                       key="start_btn", on_click=go, args=("menu",))

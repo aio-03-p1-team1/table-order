@@ -164,6 +164,11 @@ class AutoRepository:
         return self._api.log_recommendation(*a, **kw) if self.source == "api" else None
 
 
+def dev_db_test() -> dict | None:
+    """[개발 전용] 서버 DB 쓰기·읽기 확인. {"result": 1|0, ...} 또는 서버가 꺼진 경우 None."""
+    return server.safe_call(api.post, "/api/dev/db-test", None)
+
+
 def data_source_mode() -> str:
     mode = os.getenv("DATA_SOURCE", "auto").strip().lower()
     return mode if mode in MODES else "auto"

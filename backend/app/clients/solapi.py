@@ -11,6 +11,8 @@ import httpx
 from app.core.settings import Settings
 
 SOLAPI_BASE = "https://api.solapi.com"
+# 무료 한도 초과 비용을 미리 계산할 때 사용하는 건당 대략 요금(원).
+OVER_QUOTA_UNIT_COST = {"SMS": 20, "LMS": 50}
 
 
 class SolapiBalance(TypedDict):
@@ -57,11 +59,13 @@ class HttpSolapiClient:
     def send_messages(self, kind: str, text: str, phones: list[str],
                       scheduled_at: datetime | None = None) -> str:
         s = self.settings
+        sender = s.solapi_sender_number.replace("-", "")
         messages = []
-        for phone in phones:
+        for _ in phones:
             message = {
-                "to": phone.replace("-", ""),
-                "from": s.solapi_sender_number.replace("-", ""),
+                # 시연·테스트에서는 실제 고객 대신 설정된 발신번호로만 전송한다.
+                "to": sender,
+                "from": sender,
                 "text": text,
                 "type": kind,
             }

@@ -23,7 +23,7 @@ def test_roulette_win_goes_into_coupon_box_and_is_listed(client):
     r = _spin(client, h)
     assert r.status_code == 200 and r.json()["coupon"]["used_at"] is None
     mid = _my_id(client, h)
-    box = _box(client, mid)  # GET /api/v1/coupons 는 더미라 저장소로 직접 확인한다
+    box = _box(client, mid)  # GET /api/coupons 는 더미라 저장소로 직접 확인한다
     assert [(c["kind"], c["percent"], c["label"], c["used_at"]) for c in box] == [("discount", 5, "전 메뉴 5% 할인", None)]
     assert [c["nickname"] for c in client.app.state.coupons.for_members([mid])] == ["가"]
 
@@ -81,5 +81,5 @@ def test_order_marks_coupon_used_only_for_tablet_members(client):
 
 def test_coupon_box_requires_login_and_tablet_membership(client):
     h = login(client, "가")
-    assert client.get("/api/v1/coupons").status_code == 401
+    assert client.get("/api/coupons").status_code == 401
     assert client.get("/api/tables/2/coupons", headers=h).status_code == 403

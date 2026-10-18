@@ -51,18 +51,24 @@ def render_weight_panel(repo, cats):
                                                           help="0~100, 높을수록 AI 추천 조합에 우선 반영돼요 (기본 50)"),
             })
     st.caption("표의 '추천 가중치'를 직접 고친 뒤 저장하세요. 0~100, 높을수록 AI 추천 조합에 우선 반영돼요 (기본 50).")
-    new = old.copy()
-    new["추천 가중치"] = edited["추천 가중치"].reset_index(drop=True).fillna(50).astype(int).clip(0, 100)
-    dirty = not new["추천 가중치"].equals(old["추천 가중치"].astype(int))
+    new_weights = edited["추천 가중치"].reset_index(drop=True).fillna(50).astype(int).clip(0, 100)
+    old_weights = old["추천 가중치"].astype(int).reset_index(drop=True)
+    dirty = not new_weights.equals(old_weights)
     c_save, c_undo, _ = st.columns([1, 1.3, 5])
     if c_undo.button("↩ 되돌리기", key="weights_undo", width="stretch", disabled=not dirty,
                      help="저장하기 전의 가중치 변경을 모두 취소하고 저장된 값으로 돌립니다"):
         ss["weights_editor_v"] += 1  # 편집 표를 새로 만들어 저장된 값으로 되돌린다
         st.toast("저장하지 않은 변경을 되돌렸어요.", icon="↩️")
         st.rerun()
-    if c_save.button("변경 저장", type="primary", key="weights_save", width="stretch"):
+    if c_save.button("변경 저장", type="primary", key="weights_save", width="stretch", disabled=not dirty):
+        # 바뀐 메뉴만 보내 다른 메뉴 값이나 오래된 화면 값이 덮이지 않게 한다.
+        items = [
+            {"id": str(old.iloc[index]["id"]), "weight": int(weight)}
+            for index, weight in enumerate(new_weights)
+            if weight != old_weights.iloc[index]
+        ]
         try:
-            r = repo.save_menus(new, old)
+            r = repo.save_menu_batch(items)
         except Exception as e:  # noqa: BLE001 - 서버 오류 메시지를 그대로 보여준다
             st.error(f"저장하지 못했습니다: {e}")
         else:

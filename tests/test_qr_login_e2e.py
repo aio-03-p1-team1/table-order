@@ -228,7 +228,7 @@ def test_roulette_prize_goes_to_coupon_box_not_straight_to_cart(server):
     assert len(coupons) == 1 and coupons[0]["id"] and not coupons[0]["used"] and coupons[0]["nickname"] == "가"
     assert ss(app)["cart"] == {} and ss(app)["roulette_percent"] == 0  # 당첨 즉시 적용하지 않는다
     token = ss(app)["access_token"]
-    assert [c["id"] for c in api.get("/api/v1/coupons", token)] == [coupons[0]["id"]]  # 서버 쿠폰함에도 있다
+    assert [c["id"] for c in api.get("/api/coupons", token)] == [coupons[0]["id"]]  # 서버 쿠폰함에도 있다
     app.button(key="start_btn").click().run()
     assert app.button(key="header_coupons").label == "🎟️ 쿠폰함 (1)"
 
@@ -255,4 +255,4 @@ def test_using_coupon_applies_to_cart_and_server_marks_it_used_on_order(server):
     r = api.post("/api/orders", token, json={"table_no": ss(app)["table"], "coupon_ids": [coupon["id"]], "total": 0,
                                              "lines": [{"id": "a1", "name": "치킨", "unit": 0, "qty": 1}]})
     assert r["used_coupon_ids"] == [coupon["id"]]
-    assert api.get("/api/v1/coupons", token)[0]["used_at"]
+    assert api.get("/api/coupons", token)[0]["used_at"]

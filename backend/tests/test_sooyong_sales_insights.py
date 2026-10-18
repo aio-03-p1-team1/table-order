@@ -7,6 +7,7 @@ import pytest
 from app.stores.stats import StatsStore
 from tests.conftest import ADMIN
 from tests.test_sooyong_today_orders import TODAY, add_order, today_client
+from app.core.api_paths import ADMIN_API_PREFIX
 
 PATHS = ("insights", "sales/hourly", "sales/weekday", "sales/trends", "sales/tickets", "tables")
 
@@ -20,7 +21,7 @@ def insert_order(client, at, amount, table=1, ai=False, member=None):
 
 @pytest.mark.parametrize("path", PATHS)
 def test_empty_and_auth_before_reading_database(today_client, monkeypatch, path):
-    url = "/admin/api/stats/" + path
+    url = f"{ADMIN_API_PREFIX}/stats/" + path
     assert today_client.get(url, headers=ADMIN).json() == {"empty": True}
 
     def unexpected_read(self):
@@ -43,7 +44,7 @@ def test_known_totals_bands_turnover_and_subroutes(today_client):
     ]:
         insert_order(today_client, at, amount, table, ai)
     today_client.app.state.db.run("UPDATE store_info SET tables=?", (10,))
-    data = today_client.get("/admin/api/stats/insights", headers=ADMIN).json()
+    data = today_client.get(f"{ADMIN_API_PREFIX}/stats/insights", headers=ADMIN).json()
     assert data["orders"] == 6 and data["days"] == 4
     assert data["revenue"] == 219999 and data["daily_revenue"] == 54999
     assert data["avg_ticket"] == 36666 and data["ai_avg_ticket"] == 19999
@@ -60,7 +61,7 @@ def test_known_totals_bands_turnover_and_subroutes(today_client):
     assert data["top_tables"] == {"2번": 2, "3번": 1}
     # 세부 API는 같은 집계에서 필요한 항목만 반환하며 별도 고정값을 쓰지 않는다.
     for path in PATHS[1:]:
-        response = today_client.get("/admin/api/stats/" + path, headers=ADMIN)
+        response = today_client.get(f"{ADMIN_API_PREFIX}/stats/" + path, headers=ADMIN)
         assert response.status_code == 200
         assert response.json() == {key: data[key] for key in response.json()}
 
@@ -70,7 +71,7 @@ def test_known_totals_bands_turnover_and_subroutes(today_client):
 def test_kst_hour_day_and_zero_denominators(today_client, timestamp):
     insert_order(today_client, "2026-10-15T14:59:59.999999+00:00", 100)
     insert_order(today_client, timestamp, 0)
-    data = today_client.get("/admin/api/stats/insights", headers=ADMIN).json()
+    data = today_client.get(f"{ADMIN_API_PREFIX}/stats/insights", headers=ADMIN).json()
     assert data["last_order_date"] == "2026-10-16" and data["today_revenue"] == 0
     assert data["by_hour"]["00시"] == 0 and data["by_hour"]["23시"] == 100
     assert data["by_weekday"]["목"] == 100 and data["by_weekday"]["금"] == 0
@@ -84,7 +85,7 @@ def test_members_guests_preview_and_refresh(today_client):
     insert_order(today_client, TODAY.isoformat(), 20000, 1, member=member["id"])
     insert_order(today_client, (TODAY + timedelta(hours=1)).isoformat(), 30000, 4, member=member["id"])
     insert_order(today_client, TODAY.isoformat(), 40000, 2)
-    url = "/admin/api/stats/insights"
+    url = f"{ADMIN_API_PREFIX}/stats/insights"
     data = today_client.get(url, headers=ADMIN).json()
     assert data["top_customers"][0] == {"name": "추가 통계 회원", "amount": 50000, "orders": 2, "table": 4, "kind": "회원"}
     assert data["member_revenue"] == 50000 and data["guest_revenue"] == 40000
@@ -101,4 +102,4 @@ def test_members_guests_preview_and_refresh(today_client):
 @pytest.mark.parametrize("path", PATHS)
 @pytest.mark.parametrize("query", ["repeat=1", "regular=2", "dormant=0", "repeat=5&regular=3", "regular=abc"])
 def test_invalid_preview_is_rejected(today_client, path, query):
-    assert today_client.get("/admin/api/stats/" + path + "?" + query, headers=ADMIN).status_code == 422
+    assert today_client.get(f"{ADMIN_API_PREFIX}/stats/" + path + "?" + query, headers=ADMIN).status_code == 422

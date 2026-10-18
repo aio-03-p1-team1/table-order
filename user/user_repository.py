@@ -25,19 +25,36 @@ import streamlit as st
 
 import server
 from shared import api
+from shared.api_paths import API_PREFIX
 
 # 서버 경로 한 곳 정리. 서버 주소(API_URL)는 shared/api.py 에서 정한다.
 ENDPOINTS = {
-    "store": "/api/v1/store",                    # {name, branch, tables}
-    "menus": "/api/menus",                    # [메뉴...]
-    "content": "/api/content",                # {categories, staff_calls, quiz_questions, weather, rules}
-    "roulette": "/api/v1/roulette/prizes",    # 관리자 설정과 같은 DB의 룰렛 칸
-    "orders": "/api/orders",                  # POST
-    "calls": "/api/calls",                    # POST
-    "recommendations": "/api/recommendations",  # POST (추천 노출 기록)
+    "store": f"{API_PREFIX}/store",                    # {name, branch, tables}
+    "menus": f"{API_PREFIX}/menus",                    # [메뉴...]
+    "categories": f"{API_PREFIX}/categories",          # [{id, icon, name, colors:[c1, c2]}]
+    "content": f"{API_PREFIX}/content",                # {categories, staff_calls, quiz_questions, weather, rules}
+    "roulette": f"{API_PREFIX}/roulette/prizes",    # 관리자 설정과 같은 DB의 룰렛 칸
+    "orders": f"{API_PREFIX}/orders",                  # POST
+    "calls": f"{API_PREFIX}/calls",                    # POST
+    "recommendations": f"{API_PREFIX}/recommendations",  # POST (추천 노출 기록)
 }
-CONTENT_KEYS = ("categories", "staff_calls", "quiz_questions", "weather", "rules")
+CONTENT_KEYS = ("staff_calls", "quiz_questions", "weather", "rules")
 MODES = ("dummy", "api", "auto")
+
+
+def dev_test_button_enabled() -> bool:
+    """화면 환경변수가 켜져 있을 때만 개발용 DB 테스트 버튼을 보여 준다."""
+    return os.getenv("DEV_TEST_BUTTON", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def dev_db_test() -> dict:
+    """화면에서 서버를 직접 부르지 않고 개발용 DB 왕복 확인을 요청한다."""
+    try:
+        return api.post("/api/dev/db-test") or {"result": 0, "reason": "서버가 빈 응답을 반환했습니다."}
+    except api.ApiError as exc:
+        return {"result": 0, "reason": str(exc.detail)}
+    except api.ApiUnavailable:
+        return {"result": 0, "reason": "서버에 연결할 수 없습니다."}
 
 
 class ContentUnavailable(Exception):
@@ -98,7 +115,8 @@ class DummyRepository:
 def _fetch_content() -> dict:
     """서버에서 한 번에 가져온다 (10초 캐시: 관리자가 바꾼 가격·품절이 곧 반영된다)."""
     data = {"store": api.get(ENDPOINTS["store"]), "menus": api.get(ENDPOINTS["menus"]),
-            "content": api.get(ENDPOINTS["content"]), "roulette_prizes": api.get(ENDPOINTS["roulette"])}
+            "categories": api.get(ENDPOINTS["categories"]), "content": api.get(ENDPOINTS["content"]),
+            "roulette_prizes": api.get(ENDPOINTS["roulette"])}
     missing = [k for k in CONTENT_KEYS if k not in data["content"]]
     if missing:
         raise api.ApiError(502, f"서버 응답에 {missing} 가 없습니다.")
@@ -121,7 +139,7 @@ class ApiRepository:
         for m in menu:
             m.setdefault("options", [])  # 옵션 기능은 아직 서버에 없다
         c = data["content"]
-        return Content(store=data["store"], categories=c["categories"], menu=menu,
+        return Content(store=data["store"], categories=data["categories"], menu=menu,
                        roulette_prizes=data["roulette_prizes"], staff_calls=c["staff_calls"],
                        quiz_questions=c["quiz_questions"], weather=c["weather"], rules=c["rules"], source="api")
 
@@ -141,7 +159,7 @@ class ApiRepository:
 
     def db_test(self):
         """개발 전용 API를 호출한다. 오류는 화면에서 이유를 표시할 수 있도록 그대로 전달한다."""
-        return api.post("/api/dev/db-test")
+        return api.post(f"{API_PREFIX}/dev/db-test")
 
 
 class AutoRepository:

@@ -4,6 +4,21 @@
 [server]
 address = "localhost"
 showEmailPrompt = false
+# 파이썬 파일을 저장하면 Streamlit 앱을 바로 다시 실행한다.
+runOnSave = true
+# watchdog을 우선 사용하고, 사용할 수 없는 환경에서는 Streamlit이 폴링으로 전환한다.
+fileWatcherType = "auto"
+# 실행 위치가 저장소 루트라 하위 폴더는 기본 감시 대상이다. 감시 대상에서 캐시·빌드 결과물은 제외한다.
+folderWatchBlacklist = [
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "**/.mypy_cache",
+    "**/.ruff_cache",
+    "**/.tox",
+    "**/.nox",
+    "**/build",
+    "**/dist",
+]
 
 [client]
 # showDetailErrors = "none" 

@@ -4,6 +4,14 @@ from datetime import datetime, timedelta, timezone
 
 from test_sooyong_today_orders import open_dashboard, server
 from app.services.grades import KST
+from shared.api_paths import ADMIN_API_PREFIX
+
+
+def save_menu(server, menu_id, name, category="anju", price=14000):
+    """테스트 메뉴도 메뉴 저장소를 통해 저장한다."""
+    return server.app.state.shop.save_menu(
+        menu_id, {"cat": category, "name": name, "price": price}
+    )
 
 
 def save_menu(server, menu_id, name, category="anju", price=14000):
@@ -126,7 +134,7 @@ def test_three_db_examples_are_recommendation_cards(server, monkeypatch):
         assert nickname in html
     assert "오늘 주문: 예시 골뱅이" in html
     assert "11번째 방문" in html and "멘트 예시" in html
-    assert len({row["note"] for row in server.get("/admin/api/marketing/regular-preferences",
+    assert len({row["note"] for row in server.get(f"{ADMIN_API_PREFIX}/marketing/regular-preferences",
                                                headers={"Authorization": "Bearer admin-secret"}).json()["preferences"]}) > 1
     addition = next(element.value for element in screen.get("html") if 'class="recs regular-preferences"' in element.value)
     assert addition.count('class="rec"') == 2
@@ -265,7 +273,7 @@ def test_preview_is_replaced_by_real_regular_greeting_and_changes_with_order(ser
     assert "AI가 이런 인사를 추천할 예정" not in addition
     assert "주문 기억 손님님" in addition and "5번째 방문" in addition
     assert "7번 테이블" in addition and "DB 계란말이" in addition
-    path = "/admin/api/marketing/regular-preferences"
+    path = f"{ADMIN_API_PREFIX}/marketing/regular-preferences"
     headers = {"Authorization": "Bearer admin-secret"}
     before = server.get(path, headers=headers).json()["preferences"][0]
     assert before["visit_note"] in addition

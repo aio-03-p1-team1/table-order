@@ -2,32 +2,31 @@ import pytest
 
 from app.factory import create_app
 from tests.conftest import ADMIN, login, set_profile, settings
+from app.core.api_paths import ADMIN_API_PREFIX
 
 
-# @pytest.mark.skip(reason="로직을 지우고 더미 응답만 돌려주는 상태라 저장·검증이 일어나지 않음 - 해당 엔드포인트를 DB 로 구현하면 이 skip 을 지운다")
 def test_menu_seeded_and_admin_edits_reach_users(client):
     menus = client.get("/api/menus").json()
     assert len(menus) == 60 and {"id", "name", "price", "soldout", "weight", "spicy", "set_ok", "tags"} <= menus[0].keys()
-    # r = client.put("/admin/api/menus/c2", headers=ADMIN, json={"weight": 90, "soldout": True, "price": 21000})
+    # r = client.put("/api/admin/menus/c2", headers=ADMIN, json={"weight": 90, "soldout": True, "price": 21000})
     # assert r.status_code == 200 and r.json()["weight"] == 90 and r.json()["name"] == "간장마늘 치킨"
     c2 = client.app.state.shop.menu("c2")  # GET /api/menus 는 더미라 저장소로 확인한다
     assert c2["soldout"] is False and c2["price"] == 20000 and c2["weight"] == 50
 
 
-@pytest.mark.skip(reason="로직을 지우고 더미 응답만 돌려주는 상태라 저장·검증이 일어나지 않음 - 해당 엔드포인트를 DB 로 구현하면 이 skip 을 지운다")
 def test_admin_menu_create_delete_and_validation(client):
     body = {"name": "신메뉴", "cat": "anju", "price": 9000}
-    assert client.put("/admin/api/menus/new1", headers=ADMIN, json=body).status_code == 200
-    assert client.put("/admin/api/menus/new2", headers=ADMIN, json={"name": "x"}).status_code == 422
-    assert client.put("/admin/api/menus/new1", headers=ADMIN, json={"cat": "nope"}).status_code == 422
-    assert client.put("/admin/api/menus/new1", headers=ADMIN, json={"weight": 101}).status_code == 422
-    assert client.delete("/admin/api/menus/new1", headers=ADMIN).status_code == 204
-    assert client.delete("/admin/api/menus/new1", headers=ADMIN).status_code == 404
+    assert client.put(f"{ADMIN_API_PREFIX}/menus/new1", headers=ADMIN, json=body).status_code == 200
+    assert client.put(f"{ADMIN_API_PREFIX}/menus/new2", headers=ADMIN, json={"name": "x"}).status_code == 422
+    assert client.put(f"{ADMIN_API_PREFIX}/menus/new1", headers=ADMIN, json={"cat": "nope"}).status_code == 422
+    assert client.put(f"{ADMIN_API_PREFIX}/menus/new1", headers=ADMIN, json={"weight": 101}).status_code == 422
+    assert client.delete(f"{ADMIN_API_PREFIX}/menus/new1", headers=ADMIN).status_code == 204
+    assert client.delete(f"{ADMIN_API_PREFIX}/menus/new1", headers=ADMIN).status_code == 404
 
 
 def test_admin_routes_require_token(client):
-    for path in ("/admin/api/menus", "/admin/api/orders", "/admin/api/members", "/admin/api/stats",
-                 "/admin/api/marketing/sms/usage"):
+    for path in (f"{ADMIN_API_PREFIX}/menus", f"{ADMIN_API_PREFIX}/orders", f"{ADMIN_API_PREFIX}/members", f"{ADMIN_API_PREFIX}/stats",
+                 f"{ADMIN_API_PREFIX}/marketing/sms/usage"):
         assert client.get(path).status_code == 401
 
 
@@ -41,7 +40,7 @@ def test_orders_calls_and_member_link(client):
     assert r.status_code == 201 and r.json()["ai_combo"] is True
     client.post("/api/orders", json={"table_no": 6, "lines": [line], "total": 36000})  # 비회원
     assert client.post("/api/orders", json={"table_no": 6, "lines": [], "total": 0}).status_code == 422
-    shop = client.app.state.shop  # GET /admin/api/orders·calls 는 더미라 저장소로 확인한다
+    shop = client.app.state.shop  # GET /api/admin/orders·calls 는 더미라 저장소로 확인한다
     assert [o["member_id"] for o in shop.orders()] == [None, 1]
     assert len(shop.orders(1)) == 1 and shop.orders(1)[0]["ai_combo"] is True
     assert client.post("/api/calls", json={"table_no": 3, "items": ["💧 물"]}).status_code == 201
@@ -52,12 +51,12 @@ def test_members_grades_with_rule_preview_and_profile(client):
     for _ in range(4):
         login(client, "단골")
     login(client, "신입")
-    members = {m["nickname"]: m for m in client.get("/admin/api/members", headers=ADMIN).json()["members"]}
+    members = {m["nickname"]: m for m in client.get(f"{ADMIN_API_PREFIX}/members", headers=ADMIN).json()["members"]}
     assert members["단골"]["grade"] == "단골" and members["신입"]["grade"] == "신규"
-    preview = client.get("/admin/api/members", headers=ADMIN, params={"regular": 10}).json()
+    preview = client.get(f"{ADMIN_API_PREFIX}/members", headers=ADMIN, params={"regular": 10}).json()
     assert {m["nickname"]: m["grade"] for m in preview["members"]}["단골"] == "재방문"
     set_profile(client, h, birth_year=1995, gender="female", phone="010-1111-2222")
-    m = next(m for m in client.get("/admin/api/members", headers=ADMIN).json()["members"] if m["nickname"] == "단골")
+    m = next(m for m in client.get(f"{ADMIN_API_PREFIX}/members", headers=ADMIN).json()["members"] if m["nickname"] == "단골")
     assert m["age_group"] == "30대" and m["gender"] == "여" and m["has_phone"] is True
 
 
@@ -74,7 +73,7 @@ def test_stats_and_ai_hit_rate(client):
     for name in ("통닭", "생맥주"):
         db.run("INSERT INTO order_item_components (order_item_id, name, qty) VALUES (?, ?, ?)", (line, name, 2))
     db.run("INSERT INTO orders (table_no, total) VALUES (?, ?)", (2, 10000))
-    s = client.get("/admin/api/stats", headers=ADMIN).json()
+    s = client.get(f"{ADMIN_API_PREFIX}/stats", headers=ADMIN).json()
     assert s["today_orders"] == 2 and s["avg_order_amount"] == 5000
     assert s["new_customers"] == 1 and s["genders"] == {"남": 1} and s["age_groups"]["20대"] == 1
     assert s["ai"] == {**s["ai"], "recommendations": 4, "ai_orders": 1, "hit_rate": 0.25}
@@ -97,9 +96,9 @@ def test_content_endpoints_match_frontend_dummy_shape(client):
     content = client.get("/api/content").json()
     assert set(content) == {"categories", "staff_calls", "quiz_questions", "weather", "rules"}
     assert content["categories"] == menu_data.CATEGORIES
-    prizes = client.get("/api/v1/roulette/prizes").json()
+    prizes = client.get("/api/roulette/prizes").json()
     assert [{k: v for k, v in prize.items() if k != "weight"} for prize in prizes] == menu_data.ROULETTE_PRIZES
-    assert all(prize["weight"] == 1 for prize in prizes)
+    assert [prize["weight"] for prize in prizes] == [50, 10, 10, 10, 10, 10]
     assert content["staff_calls"] == menu_data.STAFF_CALLS
     assert content["quiz_questions"] == ai_quiz_data.QUESTIONS and content["weather"] == ai_quiz_data.WEATHER
     assert content["rules"] == recommendation_data.RULES
@@ -112,5 +111,5 @@ def test_content_endpoints_match_frontend_dummy_shape(client):
 
 
 def test_admin_menu_categories_come_from_content(client):
-    cats = client.get("/admin/api/menus", headers=ADMIN).json()["categories"]
+    cats = client.get(f"{ADMIN_API_PREFIX}/menus", headers=ADMIN).json()["categories"]
     assert [c["id"] for c in cats] == ["chicken", "anju", "soup", "beer", "soju", "side"]  # ai/best 제외

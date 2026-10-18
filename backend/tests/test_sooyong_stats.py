@@ -8,6 +8,7 @@ from app.services.grades import AGE_GROUPS
 from app.services.stats import dashboard
 from tests.conftest import ADMIN
 from tests.test_sooyong_today_orders import TODAY, add_order, today_client
+from app.core.api_paths import ADMIN_API_PREFIX
 
 
 def test_basic_stats_with_combo_members_and_yesterday(today_client):
@@ -33,7 +34,7 @@ def test_basic_stats_with_combo_members_and_yesterday(today_client):
                  (yesterday, "통닭", 1000, 1))
     for _ in range(4):
         state.db.run("INSERT INTO recommendation_events (table_no) VALUES (?)", (1,))
-    response = today_client.get("/admin/api/stats", headers=ADMIN)
+    response = today_client.get(f"{ADMIN_API_PREFIX}/stats", headers=ADMIN)
     assert response.status_code == 200
     stats = response.json()
     assert stats["today_orders"] == 5 and stats["avg_order_amount"] == 10000
@@ -44,9 +45,9 @@ def test_basic_stats_with_combo_members_and_yesterday(today_client):
     assert stats["ai"]["recommendations"] == 4 and stats["ai"]["ai_orders"] == 1
     assert stats["ai"]["hit_rate"] == 0.25 and stats["ai"]["definition"]
     # 쿼리 미리보기는 기존 회원 방문 기록과 기본 설정을 변경하지 않는다.
-    preview = today_client.get("/admin/api/stats?repeat=6&regular=10", headers=ADMIN).json()
+    preview = today_client.get(f"{ADMIN_API_PREFIX}/stats?repeat=6&regular=10", headers=ADMIN).json()
     assert preview["new_customers"] == 2 and preview["returning_customers"] == 0
-    assert today_client.get("/admin/api/stats", headers=ADMIN).json() == stats
+    assert today_client.get(f"{ADMIN_API_PREFIX}/stats", headers=ADMIN).json() == stats
 
 
 @pytest.mark.parametrize(("suffix", "keys"), [
@@ -57,8 +58,8 @@ def test_basic_stats_with_combo_members_and_yesterday(today_client):
 ])
 def test_subroutes_match_dashboard_and_require_auth(today_client, suffix, keys):
     add_order(today_client, TODAY.isoformat())
-    full = today_client.get("/admin/api/stats", headers=ADMIN).json()
-    path = "/admin/api/stats/" + suffix
+    full = today_client.get(f"{ADMIN_API_PREFIX}/stats", headers=ADMIN).json()
+    path = f"{ADMIN_API_PREFIX}/stats/" + suffix
     response = today_client.get(path, headers=ADMIN)
     assert response.status_code == 200
     assert response.json() == ({key: full[key] for key in keys} if keys else full["ai"])
@@ -68,7 +69,7 @@ def test_subroutes_match_dashboard_and_require_auth(today_client, suffix, keys):
 
 @pytest.mark.parametrize("query", ["repeat=1", "regular=2", "dormant=0", "regular=abc"])
 def test_reject_invalid_rules(today_client, query):
-    assert today_client.get("/admin/api/stats?" + query, headers=ADMIN).status_code == 422
+    assert today_client.get(f"{ADMIN_API_PREFIX}/stats?" + query, headers=ADMIN).status_code == 422
 
 
 def test_top_ten_and_empty_demographics():

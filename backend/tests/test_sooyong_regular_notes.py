@@ -6,9 +6,10 @@ import pytest
 
 from app.core.settings import Settings
 from app.services.grades import KST, grade_of
-from tests.conftest import ADMIN
+from tests.conftest import ADMIN, create_order, create_order_item, save_menu
+from app.core.api_paths import ADMIN_API_PREFIX
 
-URL = "/admin/api/marketing/regular-preferences"
+URL = f"{ADMIN_API_PREFIX}/marketing/regular-preferences"
 
 
 def save_menu(client, menu_id, name, category="anju", price=14000):
@@ -20,12 +21,10 @@ def save_menu(client, menu_id, name, category="anju", price=14000):
 
 def add_order(client, member_id, day, menu_id, name, *, qty=1, kind="menu", table=7):
     """실제 고객 기록 대신 테스트 메모리 DB에만 주문을 준비한다."""
-    db = client.app.state.db
     at = datetime.now(KST).replace(hour=12, minute=0, second=0, microsecond=0) - timedelta(days=day)
-    order = db.run("INSERT INTO orders (table_no, member_id, total, created_at) VALUES (?, ?, ?, ?)",
-                   (table, member_id, 14000, at.astimezone(timezone.utc).isoformat()))
-    line = db.run("INSERT INTO order_items (order_id, menu_id, name, qty, unit_price, kind) VALUES (?, ?, ?, ?, ?, ?)",
-                  (order, menu_id, name, qty, 14000, kind))
+    order = create_order(client, table_no=table, member_id=member_id, total=14000,
+                         created_at=at.astimezone(timezone.utc).isoformat())
+    line = create_order_item(client, order, name, menu_id=menu_id, qty=qty, unit_price=14000, kind=kind)
     return order, line
 
 

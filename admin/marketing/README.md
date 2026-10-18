@@ -14,7 +14,7 @@
 ## 다음 작업 순서
 
 1. `DATA_SOURCE=dummy`로 관리자 앱을 켜고 `마케팅 > AI 추천`의 문구와 카드 순서를 조정한다.
-2. `GET /admin/api/marketing/opportunities?round=`가 구현되면 `AdminRepository.opportunities(round)`를 추가한다.
+2. `마케팅 추천 카드 API(미등록)`가 구현되면 `AdminRepository.opportunities(round)`를 추가한다.
 3. API 연결 성공 시 서버 카드, 실패하거나 더미 모드이면 현재 로컬 계산을 사용한다.
 4. `backend/app/services/stats.py`가 완성되기 전에는 AI 적중률처럼 없는 데이터의 카드를 건너뛴다.
 

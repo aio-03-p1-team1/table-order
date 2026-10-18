@@ -13,8 +13,8 @@
 쓰기(POST/PUT/DELETE)도 같은 방식으로 DB 에 저장하지 않고 "성공한 것처럼" 더미 응답을 돌려준다.
 교체할 때는 라우터의 TODO 주석을 따라 store 함수를 구현하고 해당 더미 함수를 지운다.
 
-QR 로그인(/api/auth/*, /api/members/me, /api/tables/{n}/logins)과 문자 발송(/admin/api/marketing/sms/*)은 더미가 아니다.
-고객 목록(GET /admin/api/members)도 문자 발송 대상·수신거부와 같은 회원 id 를 쓰므로 DB 를 그대로 읽는다.
+QR 로그인(/api/auth/*, /api/members/me, /api/tables/{n}/logins)과 문자 발송(/api/admin/marketing/sms/*)은 더미가 아니다.
+고객 목록(GET /api/admin/members)도 문자 발송 대상·수신거부와 같은 회원 id 를 쓰므로 DB 를 그대로 읽는다.
 응답 모양은 지금 화면(user/, admin/)이 쓰는 것과 같다. 더미 쓰기는 아무것도 저장하지 않으므로 이후 조회에도 반영되지 않는다.
 """
 

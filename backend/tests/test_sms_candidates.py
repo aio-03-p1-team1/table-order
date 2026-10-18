@@ -6,9 +6,10 @@ from fastapi.testclient import TestClient
 from app.factory import create_app
 from app.services.external_info import EVENT_URL
 from tests.conftest import ADMIN, at, login, set_profile, settings
+from app.core.api_paths import ADMIN_API_PREFIX
 
-CANDIDATES = "/admin/api/marketing/sms/candidates"
-EXTERNAL = "/admin/api/marketing/external-context"
+CANDIDATES = f"{ADMIN_API_PREFIX}/marketing/sms/candidates"
+EXTERNAL = f"{ADMIN_API_PREFIX}/marketing/external-context"
 
 
 def member(c, nick, consent=True):

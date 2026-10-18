@@ -3,34 +3,20 @@
 import pytest
 
 from app.stores.stats import StatsStore
-from tests.conftest import ADMIN
+from tests.conftest import ADMIN, create_order, create_order_item, save_menu
+from app.core.api_paths import ADMIN_API_PREFIX
 
-
-@pytest.fixture(autouse=True)
-def restock_seeded_menus(client):
-    """앱 시작 때 들어오는 시드 품절 메뉴를 각 테스트에서 제외한다."""
-    for menu in client.app.state.shop.menus():
-        if menu["soldout"]:
-            client.app.state.shop.save_menu(menu["id"], {"soldout": False})
-
-
-def add_menu(client, menu_id, name, soldout=False):
-    """메뉴 저장소를 거쳐 품절 API 검증에 필요한 메뉴를 준비한다."""
-    client.app.state.shop.save_menu(
-        menu_id, {"cat": "anju", "name": name, "price": 1000, "soldout": soldout}
-    )
+pytestmark = pytest.mark.usefixtures("empty_menu_catalog")
 
 
 def add_line(client, menu_id, name, qty=1, kind="menu"):
     """조합의 구성 수량과 일반 주문을 구분할 주문 줄을 만든다."""
-    db = client.app.state.db
-    order = db.run("INSERT INTO orders (table_no, total) VALUES (?, ?)", (1, 1000))
-    return db.run("INSERT INTO order_items (order_id, menu_id, name, unit_price, qty, kind) VALUES (?, ?, ?, ?, ?, ?)",
-                  (order, menu_id, name, 1000, qty, kind))
+    order = create_order(client, table_no=1, total=1000)
+    return create_order_item(client, order, name, menu_id=menu_id, unit_price=1000, qty=qty, kind=kind)
 
 
 def get_alerts(client):
-    response = client.get("/admin/api/alerts", headers=ADMIN)
+    response = client.get(f"{ADMIN_API_PREFIX}/alerts", headers=ADMIN)
     assert response.status_code == 200
     return response.json()
 
@@ -42,12 +28,12 @@ def test_empty_and_unauthenticated_requests(client, monkeypatch):
         pytest.fail("인증 없는 요청이 메뉴 DB를 읽었습니다.")
 
     monkeypatch.setattr(StatsStore, "menu_stock", unexpected_read)
-    assert client.get("/admin/api/alerts").status_code == 401
+    assert client.get(f"{ADMIN_API_PREFIX}/alerts").status_code == 401
 
 
 def test_current_stock_and_restock_are_visible_without_orders(client):
-    add_menu(client, "stock-a", "품절 예시", True)
-    add_menu(client, "stock-b", "판매 중 예시")
+    save_menu(client, "stock-a", "품절 예시", price=1000, soldout=True)
+    save_menu(client, "stock-b", "판매 중 예시", price=1000)
     alerts = get_alerts(client)
     assert alerts == [{"kind": "soldout", "menu_id": "stock-a", "name": "품절 예시", "title": "품절 메뉴",
                        "detail": "품절 예시 메뉴가 현재 품절이에요.", "popular": False}]
@@ -58,7 +44,7 @@ def test_current_stock_and_restock_are_visible_without_orders(client):
 def test_popularity_counts_components_times_combo_quantity_and_limits_top_ten(client):
     for index in range(12):
         menu_id = f"stock-{index:02}"
-        add_menu(client, menu_id, f"메뉴{index:02}", index in (0, 11))
+        save_menu(client, menu_id, f"메뉴{index:02}", price=1000, soldout=index in (0, 11))
         add_line(client, menu_id, f"메뉴{index:02}", 20 - index)
     combo = add_line(client, None, "조합 이름은 메뉴가 아님", 3, "combo")
     client.app.state.db.run("INSERT INTO order_item_components (order_item_id, menu_id, name, qty) VALUES (?, ?, ?, ?)",
@@ -70,10 +56,10 @@ def test_popularity_counts_components_times_combo_quantity_and_limits_top_ten(cl
 
 
 def test_menu_ids_survive_rename_and_ambiguous_legacy_names_are_not_guessed(client):
-    add_menu(client, "renamed", "새 메뉴 이름", True)
-    add_menu(client, "legacy", "ID 없는 옛 메뉴", True)
-    add_menu(client, "duplicate-1", "동명 메뉴", True)
-    add_menu(client, "duplicate-2", "동명 메뉴")
+    save_menu(client, "renamed", "새 메뉴 이름", price=1000, soldout=True)
+    save_menu(client, "legacy", "ID 없는 옛 메뉴", price=1000, soldout=True)
+    save_menu(client, "duplicate-1", "동명 메뉴", price=1000, soldout=True)
+    save_menu(client, "duplicate-2", "동명 메뉴", price=1000)
     add_line(client, "renamed", "주문할 당시의 이름", 2)
     add_line(client, None, "ID 없는 옛 메뉴", 3)
     add_line(client, None, "동명 메뉴", 100)
@@ -83,7 +69,7 @@ def test_menu_ids_survive_rename_and_ambiguous_legacy_names_are_not_guessed(clie
 
 
 def test_deleted_menu_id_does_not_fall_back_to_another_same_named_menu(client):
-    add_menu(client, "remaining", "같은 이름", True)
+    save_menu(client, "remaining", "같은 이름", price=1000, soldout=True)
     add_line(client, "deleted-id", "같은 이름", 10)
     assert not get_alerts(client)[0]["popular"]
 
@@ -91,7 +77,7 @@ def test_deleted_menu_id_does_not_fall_back_to_another_same_named_menu(client):
 def test_equal_quantities_have_repeatable_top_ten(client):
     for index in range(11):
         menu_id = f"tie-{index:02}"
-        add_menu(client, menu_id, f"메뉴{index:02}", True)
+        save_menu(client, menu_id, f"메뉴{index:02}", price=1000, soldout=True)
         add_line(client, menu_id, f"메뉴{index:02}")
     rows = get_alerts(client)
     assert sum(row["popular"] for row in rows) == 10

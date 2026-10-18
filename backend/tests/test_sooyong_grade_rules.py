@@ -10,8 +10,9 @@ from app.services.grades import KST
 from app.stores.grade_rules import GradeRuleStore
 from tests.conftest import ADMIN, settings
 from tests.test_sooyong_regular_notes import prepare, notes
+from app.core.api_paths import ADMIN_API_PREFIX
 
-URL = "/admin/api/customers/grades/rules"
+URL = f"{ADMIN_API_PREFIX}/customers/grades/rules"
 RULE = {"repeat": 3, "regular": 8, "dormant": 45}
 
 
@@ -38,12 +39,12 @@ def test_missing_saved_rule_uses_environment_without_inserting_a_row():
 def test_saved_rule_changes_counts_and_query_preview_has_priority_without_writing(client):
     member = client.app.state.members.upsert_login("saved-rule", "기준 검증 회원")
     client.app.state.db.run("UPDATE members SET visit_count=7 WHERE id=?", (member["id"],))
-    assert client.get("/admin/api/customers/grades", headers=ADMIN).json()["단골"] == 1
+    assert client.get(f"{ADMIN_API_PREFIX}/customers/grades", headers=ADMIN).json()["단골"] == 1
     assert client.put(URL, headers=ADMIN, json=RULE).status_code == 200
     before = client.app.state.db.one("SELECT * FROM app_settings WHERE key='grade_rule'")
-    assert client.get("/admin/api/customers/grades", headers=ADMIN).json()["재방문"] == 1
-    assert client.get("/admin/api/customers/grades", headers=ADMIN, params={"regular": 5}).json()["단골"] == 1
-    for path in ("/admin/api/members", "/admin/api/customers"):
+    assert client.get(f"{ADMIN_API_PREFIX}/customers/grades", headers=ADMIN).json()["재방문"] == 1
+    assert client.get(f"{ADMIN_API_PREFIX}/customers/grades", headers=ADMIN, params={"regular": 5}).json()["단골"] == 1
+    for path in (f"{ADMIN_API_PREFIX}/members", f"{ADMIN_API_PREFIX}/customers"):
         assert client.get(path, headers=ADMIN).json()["members"][0]["grade"] == "재방문"
         assert client.get(path, headers=ADMIN, params={"regular": 5}).json()["members"][0]["grade"] == "단골"
     assert client.app.state.db.one("SELECT * FROM app_settings WHERE key='grade_rule'") == before
@@ -91,13 +92,13 @@ def test_dormancy_and_repeat_threshold_reach_stats_and_sms_without_editing_membe
     client.app.state.db.run("UPDATE members SET last_visit_at=?, phone=?, marketing_consent=1 WHERE id=?",
                            (last, "01000000000", member["id"]))
     original = client.app.state.members.all()
-    assert client.get("/admin/api/stats", headers=ADMIN).json()["returning_customers"] == 0
+    assert client.get(f"{ADMIN_API_PREFIX}/stats", headers=ADMIN).json()["returning_customers"] == 0
     client.put(URL, headers=ADMIN, json={"repeat": 6, "regular": 8, "dormant": 45})
-    stats = client.get("/admin/api/stats", headers=ADMIN).json()
+    stats = client.get(f"{ADMIN_API_PREFIX}/stats", headers=ADMIN).json()
     assert stats["new_customers"] == 1 and stats["returning_customers"] == 0
-    insights = client.get("/admin/api/stats/insights", headers=ADMIN).json()
+    insights = client.get(f"{ADMIN_API_PREFIX}/stats/insights", headers=ADMIN).json()
     assert insights["customer_grades"]["신규"] == 1
     assert client.app.state.sms.targets(["신규"])[0]["id"] == member["id"]
     assert client.app.state.sms_candidates.summary()["pool"] == {"신규": 1}
-    assert client.get("/admin/api/stats", headers=ADMIN, params={"repeat": 2}).json()["returning_customers"] == 1
+    assert client.get(f"{ADMIN_API_PREFIX}/stats", headers=ADMIN, params={"repeat": 2}).json()["returning_customers"] == 1
     assert client.app.state.members.all() == original

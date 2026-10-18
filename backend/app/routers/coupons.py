@@ -5,12 +5,12 @@ from fastapi import APIRouter, Depends, Request
 from app import dummy
 from app.core.dependencies import current_member
 from app.routers.user import tablet_rows
+from app.core.api_paths import API_PREFIX
 
-router = APIRouter(prefix="/api", tags=["사용자"])
+router = APIRouter(prefix=API_PREFIX, tags=["사용자"])
 
 
 
-@router.get("/v1/coupons")
 @router.get("/coupons")
 async def my_coupons(request: Request, member: dict = Depends(current_member)):
     """쿠폰함: 내 쿠폰 목록. 안 쓴 쿠폰이 먼저 나온다 (used_at 이 null 이면 사용 가능). [더미]"""

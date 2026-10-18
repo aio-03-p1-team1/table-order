@@ -19,11 +19,11 @@
 | 순서 | 할 일 | API | 상태 |
 |---|---|---|---|
 | 0 | 0. 개발 흐름 확인 (테스트 버튼) | `POST /api/dev/db-test` (개발 전용) | 확인 전 |
-| 1 | 1. 고객 등급 · 수신거부 점검 | `GET /admin/api/customers`, `…/customers/grades`, `…/grades/rules`, `…/marketing/regular-preferences`, `POST …/customers/{id}/opt-out` | 구현·DB 검증 완료, 1-3 추천 예정 예시·실제 주문 전환·실행 중 화면 갱신 검증 완료 |
-| 2 | 2. 대시보드 기본 통계 | `GET /admin/api/stats/sales`, `stats/menus/ranking`, `stats/customers`, `stats/ai-recommendations` | 구현·담당 기능 테스트 완료, 실제 DB 재검증 완료 |
+| 1 | 1. 고객 등급 · 수신거부 점검 | `GET /api/admin/customers`, `…/customers/grades`, `…/grades/rules`, `…/marketing/regular-preferences`, `POST …/customers/{id}/opt-out` | 구현·DB 검증 완료, 1-3 추천 예정 예시·실제 주문 전환·실행 중 화면 갱신 검증 완료 |
+| 2 | 2. 대시보드 기본 통계 | `GET /api/admin/stats/sales`, `stats/menus/ranking`, `stats/customers`, `stats/ai-recommendations` | 구현·담당 기능 테스트 완료, 실제 DB 재검증 완료 |
 | 3 | 3. 대시보드 추가 통계 | `stats/sales/hourly·trends·weekday·tickets`, `stats/tables` | 구현·담당 기능 테스트 완료, 매출 유지·15개 테이블 주문 재분배·TOP 5 실제 화면 검증 완료 |
-| 4 | 4. 메뉴 품절 조회 · 중복 고객 정보 제외 | `GET /admin/api/alerts` | 구현·담당 기능 테스트 완료, 실제 DB·화면 재검증 완료 |
-| 5 | 5. 고객 등급 기준 영구 저장 | `GET·PUT /admin/api/customers/grades/rules` | 구현·실제 DB 연동·전체 테스트·브라우저 저장/새로고침 검증 완료 |
+| 4 | 4. 메뉴 품절 조회 · 중복 고객 정보 제외 | `GET /api/admin/alerts` | 구현·담당 기능 테스트 완료, 실제 DB·화면 재검증 완료 |
+| 5 | 5. 고객 등급 기준 영구 저장 | `GET·PUT /api/admin/customers/grades/rules` | 구현·실제 DB 연동·전체 테스트·브라우저 저장/새로고침 검증 완료 |
 
 **수용 담당 1~5번 모두 구현 완료 (2026-10-17)**
 
@@ -39,14 +39,14 @@
 - 1~3번은 실제 Supabase와 실행 중인 API를 대조한 **93개 점검**을 통과했다. 필요한 테이블 27개, 회원 41명, 전체 주문 133건 중 최근 30일 주문 115건을 읽기 전용으로 확인했다.
 - 고객 목록·등급 집계·설정과 미리보기 결과가 일치하며, 미리보기 전후 회원 기록·기본 설정은 동일했다. 오늘(KST) 주문·평균 금액, AI 지표, 최근 매출 합계, 금액대별 주문 수, 전주 대비 증감률, 회전율과 세부 API 응답도 DB 집계와 일치했다. 잘못된 기준의 422·미인증 요청의 401을 확인했다.
 - 1~3번 지정 자동 테스트는 서버 **83 passed**, 화면 **19 passed**다. 수신거부 쓰기·빈 DB·날짜 경계·새로고침은 별도 메모리 DB 테스트로 확인했으며 실제 고객의 수신거부 상태를 변경하지 않았다.
-- 4번은 기존 커밋 `ce7d4db`에 이미 구현되어 있어 중복 구현하지 않았다. 실제 DB 품절 메뉴와 `/admin/api/alerts` 결과가 일치했고, 품절 1개·인기 품절 0개를 확인했다. 지정 자동 테스트는 서버 **6 passed**, 화면 **5 passed**로 품절 해제·빈 DB·판매 수량·중복 고객 카드 제외 등을 검증했다.
+- 4번은 기존 커밋 `ce7d4db`에 이미 구현되어 있어 중복 구현하지 않았다. 실제 DB 품절 메뉴와 `/api/admin/alerts` 결과가 일치했고, 품절 1개·인기 품절 0개를 확인했다. 지정 자동 테스트는 서버 **6 passed**, 화면 **5 passed**로 품절 해제·빈 DB·판매 수량·중복 고객 카드 제외 등을 검증했다.
 - 실제 API 모드로 대시보드 5개 하위 화면과 고객 목록·등급 분류 기준, 총 **7개 화면**을 오류 없이 확인했다. 등급 미리보기·기본값 복원과 메뉴 새로고침도 정상이다. 실제 DB 기록·스키마와 다른 담당자의 코드는 변경하지 않았다.
 
 **남은 작업과 완료 범위**
 
 - 현재 정한 1~5번 기능 범위에는 추가 미구현 항목이 없다. 4번의 휴면 고객 알림은 아래 범위 조정에 따라 제외했으며, 고객 등급 화면에서 해당 고객 수·목록을 확인한다. 메뉴 등록·수정, 알림 이력 저장·읽음 처리는 4번 완료 조건에 포함하지 않는다.
 - 0번 개발 흐름 확인은 미체크 상태다. 이번 기능 검증만으로 개발 전용 테스트 버튼·흐름 확인용 PR 생성/닫기까지 완료했다고 표시하지 않는다. 코드 공유를 위한 커밋·PR 절차도 기능 구현 완료와 구분한다.
-- README의 수용 1~4번 체크와 실제 DB 구현 안내를 현재 코드에 맞췄다. 과거 API 목록·담당 분배표의 더미/미구현 표시는 작성 당시 기록이므로 현재 기능 상태는 이 TODO와 실제 `/admin/api/...` 경로를 기준으로 확인한다.
+- README의 수용 1~4번 체크와 실제 DB 구현 안내를 현재 코드에 맞췄다. 과거 API 목록·담당 분배표의 더미/미구현 표시는 작성 당시 기록이므로 현재 기능 상태는 이 TODO와 실제 `/api/admin/...` 경로를 기준으로 확인한다.
 
 **다른 팀원과 겹치는 지점**
 
@@ -54,7 +54,7 @@
 |---|---|---|
 | `B/stores/shop_orders.py` | 재현(주문 저장) | 수정하지 않는다. 통계용 읽기 SQL은 `B/stores/stats.py`(신규)에 만든다 |
 | `B/services/stats.py` | 성호(챗봇이 "오늘 매출"을 물을 때 호출) | 수용만 수정. 함수 이름이 바뀌면 성호에게 알린다 |
-| `B/dummy/` | 재현·서준·석원 | `stats_data.py`(`dashboard_stats`와 `"GET /admin/api/stats"` 줄)만 다룬다. `members()`·`orders()` 더미는 재현의 주문 이력이 쓰므로 재현과 순서를 맞춘다 |
+| `B/dummy/` | 재현·서준·석원 | `stats_data.py`(`dashboard_stats`와 `"GET /api/admin/stats"` 줄)만 다룬다. `members()`·`orders()` 더미는 재현의 주문 이력이 쓰므로 재현과 순서를 맞춘다 |
 | `A/admin_repository.py` | 모두 | `# ---- 고객 / 주문 / 통계 ----` 구역 안에서만 수정 |
 
 **먼저 알아둘 점**: 통계는 주문 데이터가 있어야 확인할 수 있다. 재현이 주문 저장(`POST /orders`)을 끝내기 전에는 테스트에서 `orders`/`order_items`에 직접 INSERT 해 둔 값(픽스처)으로 확인한다.
@@ -83,7 +83,7 @@
 
 ## 1. 고객 등급 · 수신거부 (구현·기능 테스트 완료)
 
-### 1-1. `GET /admin/api/customers`, `POST /admin/api/customers/{member_id}/opt-out` (구현됨)
+### 1-1. `GET /api/admin/customers`, `POST /api/admin/customers/{member_id}/opt-out` (구현됨)
 
 **목표**: 이미 동작한다(`B/routers/admin/members.py`). 고객 목록에 등급이 붙고, 쿼리(`repeat`, `regular`, `dormant`)로 등급 기준을 미리 바꿔 볼 수 있다(저장은 안 됨). 코드를 고치기보다 **다른 기능이 의존하는 계약**이므로 모양을 바꾸지 않는 것이 중요하다.
 
@@ -100,7 +100,7 @@
 **흐름**
 ```
 UI(고객 등급 · 기준 조절) → A/views/customers.py → repo.members(rule) (A/admin_repository.py)
- → GET /admin/api/members?repeat&regular&dormant → B/routers/admin/members.py list_members
+ → GET /api/admin/members?repeat&regular&dormant → B/routers/admin/members.py list_members
  → B/stores/members.py all() → DB(members) → B/services/grades.py (등급·연령대 계산)
  → {rule, members:[{id, nickname, grade, age_group,...}]} → pandas 표 → UI 표 + 등급 분포
 ```
@@ -110,11 +110,11 @@ UI(고객 등급 · 기준 조절) → A/views/customers.py → repo.members(rul
 - [x] 수신거부 API는 이미 구현(`member_opt_out`)이라 수정 없음. 문자 발송(성호)이 같은 `members.opted_out`을 읽으므로 컬럼 의미를 바꾸지 않는다.
 - [x] 신규 엔드포인트는 같은 파일 `members.py`의 **아래쪽에 추가**만 한다(기존 함수 수정 금지).
 
-### 1-2. `GET /admin/api/customers/grades`, `GET /admin/api/customers/grades/rules` (구현·자동 테스트 완료)
+### 1-2. `GET /api/admin/customers/grades`, `GET /api/admin/customers/grades/rules` (구현·자동 테스트 완료)
 
 **목표**: `grades`는 등급별 고객 수 + 휴면 수, `grades/rules`는 현재 등급 기준(`repeat`, `regular`, `dormant`)을 돌려준다. 기존에는 `list_members` 응답 안의 `rule`/`grade`를 화면이 모아서 썼으며, 이제 전용 엔드포인트로 분리했다.
 
-**실제 경로**: `docs/개발_가이드.md`의 관리자 경로 규칙(`/admin/api/...`)을 따른다. 기획서의 `/api/admin/...` 표기와 구분한다.
+**경로 기준**: `backend/app/core/api_paths.py`의 `ADMIN_API_PREFIX`를 사용하며, 관리자 경로는 `/api/admin/...`로 통일한다.
 
 **테스트 방법**: 새 `BT/test_customer_grades.py` — 회원 4명(신규/재방문/단골/휴면 각 1명)을 만들고 `grades`가 `{신규:1, 재방문:1, 단골:1, 휴면:1}` / `rules`가 설정값(`GRADE_REPEAT_VISITS` 등)과 같음 / 쿼리로 기준을 바꾸면 분포가 바뀜 / 인증 없으면 401.
 
@@ -123,15 +123,15 @@ UI(고객 등급 · 기준 조절) → A/views/customers.py → repo.members(rul
 **흐름**
 ```
 UI(고객 목록 · 등급 카드 / 고객 등급 기준 패널) → A/views/customers.py → repo.customer_grades(rule)
- → GET /admin/api/customers/grades → B/routers/admin/members.py (새 함수)
+ → GET /api/admin/customers/grades → B/routers/admin/members.py (새 함수)
  → B/stores/members.py all() → DB(members) → B/services/grades.py grade_of → 등급별 개수 집계
  → {신규, 재방문, 단골, 휴면, dormant_count} → 고객 등급 화면의 카드
 ```
 
 **상세 설명 / TODO**
 
-- [x] `grades`, `grades/rules` 두 함수를 `members.py` 맨 아래에 추가(경로 충돌 주의: `/customers/grades`가 `/customers/{customerId}/…`보다 **먼저** 선언돼야 한다).
-- [x] 새 `/admin/api/customers` 경로를 추가하고 기존 `/admin/api/members` 및 수신거부 응답을 유지한다. 목록·수신거부 별칭은 기존 함수를 그대로 사용한다.
+- [x] `grades`, `grades/rules` 두 함수를 `members.py` 맨 아래에 추가(경로 충돌 주의: `/customers/grades`가 `/customers/{member_id}/…`보다 **먼저** 선언돼야 한다).
+- [x] 새 `/api/admin/customers` 경로를 추가하고 기존 `/api/admin/members` 및 수신거부 응답을 유지한다. 목록·수신거부 별칭은 기존 함수를 그대로 사용한다.
 - [x] 고객 목록의 등급 카드·기준 미리보기가 같은 집계 API를 사용한다. 등급 계산은 기존 `grade_of()`를 재사용한다. 대시보드의 중복 고객 카드는 4번 범위 조정에 따라 제외했다.
 
 **2026-10-16 구현·검증 기록**
@@ -155,7 +155,7 @@ UI(고객 목록 · 등급 카드 / 고객 등급 기준 패널) → A/views/cus
 
 - [x] 고객 등급 화면의 카드·필터·목록·기준 표기를 다시 `휴면`으로 맞춘다. 내부 등급 값 `휴면`과 `dormant_count`는 유지한다.
 - [x] 서버 설정·기본 등급 계산·화면/더미 기본 기준·`.env.example`을 30일로 맞춘다. 로컬 `.env`의 해당 기준값만 30으로 반영했으며, 비밀값은 출력하거나 커밋하지 않는다. 기본값이 바뀌면 기존 화면 세션도 새 기준으로 갱신한다.
-- [x] `GET /admin/api/marketing/regular-preferences`에서 회원·주문·메뉴를 읽어 서버 기준으로 단골이며 방문 5회 이상인 고객의 오늘 주문과 방문 횟수를 반환한다. 고객 목록의 별도 메모와 이전 메모 API는 제거하고 기존 고객 목록·수신거부 함수와 주문 저장 담당 코드는 유지한다.
+- [x] `GET /api/admin/marketing/regular-preferences`에서 회원·주문·메뉴를 읽어 서버 기준으로 단골이며 방문 5회 이상인 고객의 오늘 주문과 방문 횟수를 반환한다. 고객 목록의 별도 메모와 이전 메모 API는 제거하고 기존 고객 목록·수신거부 함수와 주문 저장 담당 코드는 유지한다.
 - [x] 선호 메뉴가 없거나 과거 주문이 부족해도 오늘 주문한 단골은 모두 안내한다. 오늘(KST)을 제외한 과거 주문일 5일 이상, 같은 안주를 주문한 날의 비율 80% 이상일 때만 메뉴 취향을 추가한다. 로그인 방문 횟수와 주문일 수를 구분하며, 같은 날의 추가 주문이나 주문 수량으로 비율을 부풀리지 않는다.
 - [x] 오늘 실제 메뉴 주문이 확인된 경우에만 방문 정보를 알린다. 오늘 음료만 주문한 단골도 포함하며, 무료 룰렛 서비스만 있으면 제외한다. 평소와 다른 안주·같은 안주·함께 주문한 안주·품절에 맞춰 확인된 사실과 부드러운 멘트 예시를 구분하고 사장님이 자유롭게 활용하도록 안내한다. 품절로 손님의 선택 이유를 추측하지 않는다. 무료 룰렛 서비스·주류·음료와 다른 회원·비회원 주문은 선호 안주 근거에서 제외한다. AI 조합은 구성 메뉴로 확인한다.
 - [x] 마케팅 > AI 추천의 기존 문구·순서·추천 4개·재추천 순환을 원래대로 유지한다. 아래 추가 영역의 ‘오늘은 이런 멘트 어떠세요?’ 안내에 인원 제한 없이 고객·N번째 방문·오늘 주문 테이블·전달 메뉴·응대 멘트 예시를 함께 표시한다. 80% 기준은 메뉴 취향 설명에만 적용한다. 재추천 시 DB를 다시 읽으며, 추가 조회 실패·더미 모드에서도 기존 추천은 그대로 유지한다.
@@ -190,9 +190,9 @@ UI(고객 목록 · 등급 카드 / 고객 등급 기준 패널) → A/views/cus
 
 ## 2. 대시보드 기본 통계 (구현·기능 테스트 완료)
 
-### 2-1. `GET /admin/api/stats/sales`, `…/stats/menus/ranking`, `…/stats/customers`, `…/stats/ai-recommendations`
+### 2-1. `GET /api/admin/stats/sales`, `…/stats/menus/ranking`, `…/stats/customers`, `…/stats/ai-recommendations`
 
-**현재 상태**: `GET /admin/api/stats`의 기본 통계 전체와 4개 세부 API를 실제 DB로 구현했다. 기존 응답 키와 화면 호출 경로를 유지한다. 매출 추이·테이블 통계는 아래 3번에서, 메뉴 품절은 아래 4번에서 DB로 전환했다.
+**현재 상태**: `GET /api/admin/stats`의 기본 통계 전체와 4개 세부 API를 실제 DB로 구현했다. 기존 응답 키와 화면 호출 경로를 유지한다. 매출 추이·테이블 통계는 아래 3번에서, 메뉴 품절은 아래 4번에서 DB로 전환했다.
 
 **2026-10-16 초기 작업 기록: 오늘 주문 건수만 구현 (이후 2번 전체로 확장)**
 
@@ -241,7 +241,7 @@ UI(고객 목록 · 등급 카드 / 고객 등급 기준 패널) → A/views/cus
 **흐름**
 ```
 UI(대시보드 KPI 카드) → A/views/dashboard.py → repo.stats(rule) (A/admin_repository.py)
- → GET /admin/api/stats → B/routers/admin/stats.py dashboard
+ → GET /api/admin/stats → B/routers/admin/stats.py dashboard
  → B/stores/stats.py(신규): 오늘 주문 / 메뉴별 수량 / 추천 노출 수를 SELECT
    + B/stores/members.py all()
  → B/services/stats.py dashboard(orders, members, recommendations, today, rule): 파이썬으로 집계
@@ -286,7 +286,7 @@ UI(대시보드 KPI 카드) → A/views/dashboard.py → repo.stats(rule) (A/adm
 - 도구: `backend/.venv/Scripts/python.exe tools/seed_sales_demo.py --rebalance-tables`는 미리보기, `--apply`를 붙이면 마지막 영업일 시연만 재분배한다. 재실행 시 추가·삭제 0건이며 기존 전체 시연 도구도 새 건수 구성을 유지한다. 실패 시 원래 주문·메뉴 내역 전체가 복원된다.
 - 지정 서버 **9 passed**, 화면 **2 passed**. API 8개 모두 200, 주문·메뉴 합계 일치, 매출 금액 11개 항목 무변경과 실제 브라우저 TOP 5·빨강/파랑 표시를 확인했다. 최종 전체 서버 **191 passed, 9 skipped**, 화면·통합 **129 passed, 12 skipped**, `git diff --check` 통과.
 
-**현재 상태**: 5개 세부 API와 화면용 묶음 조회 `GET /admin/api/stats/insights`를 구현했다. API 모드 대시보드는 실제 DB의 추가 통계를 사용하고, 더미 모드는 `A/dashboard_stats.py`의 기존 계산을 유지한다.
+**현재 상태**: 5개 세부 API와 화면용 묶음 조회 `GET /api/admin/stats/insights`를 구현했다. API 모드 대시보드는 실제 DB의 추가 통계를 사용하고, 더미 모드는 `A/dashboard_stats.py`의 기존 계산을 유지한다.
 
 **목표**
 
@@ -313,7 +313,7 @@ UI(대시보드 KPI 카드) → A/views/dashboard.py → repo.stats(rule) (A/adm
 **흐름**
 ```
 UI(대시보드 · 시간대/요일 막대, 추이, 테이블 TOP5) → A/views/dashboard.py render_sales_insights·render_trend_insights
- → repo.sales_insights(rule) → GET /admin/api/stats/insights
+ → repo.sales_insights(rule) → GET /api/admin/stats/insights
  → B/routers/admin/stats.py → B/services/stats.py → B/stores/stats.py
  → DB(orders …) → 집계 dict → UI 막대·KPI
 ```
@@ -333,7 +333,7 @@ UI(대시보드 · 시간대/요일 막대, 추이, 테이블 TOP5) → A/views/
 **2026-10-16 3번 구현·검증 기록**
 
 - `StatsStore.sales_orders()`가 주문과 회원 닉네임을 한 번의 읽기 쿼리로 가져온다. 추가 통계에 필요 없는 메뉴 줄·조합 구성은 조회하지 않는다. 주문 저장 담당 파일과 DB 스키마는 변경하지 않았다.
-- 실제 API 경로는 `/admin/api/stats/sales/hourly`, `…/weekday`, `…/trends`, `…/tickets`, `/admin/api/stats/tables`다. 세부 API는 같은 계산의 필요한 항목과 `empty`를 반환한다. 화면은 `/admin/api/stats/insights`를 한 번 호출해 추가 통계 전체를 받는다.
+- 실제 API 경로는 `/api/admin/stats/sales/hourly`, `…/weekday`, `…/trends`, `…/tickets`, `/api/admin/stats/tables`다. 세부 API는 같은 계산의 필요한 항목과 `empty`를 반환한다. 화면은 `/api/admin/stats/insights`를 한 번 호출해 추가 통계 전체를 받는다.
 - 최근 30일은 마지막 주문일 포함 30일, 최근 7일과 이전 7일은 겹치지 않는 기간, 일별 그래프는 최근 14일이다. 매출이 없는 날짜는 0원이다. 일평균·회전율의 일수는 기존 화면과 동일하게 주문이 발생한 날짜 수다.
 - 시각을 KST로 통일하고 UTC·KST·시간대 없는 SQLite 문자열을 모두 처리한다. 비교 매출 0원일 때 증감률, 해당 주문이 없는 집단의 객단가는 `null`이다. 빈 주문 목록은 모든 추가 API에서 `{"empty": true}`로 반환한다.
 - 자체 검토에서 발견한 기존 표시 오류를 수정했다. `오늘 매출`은 실제 KST 오늘 매출, `마지막 영업일 매출`은 마지막 주문일 매출이다. 오늘 주문이 없으면 오늘 매출은 0원이며, 고객 매출·테이블 순위의 제목도 실제 집계일인 마지막 영업일로 명시한다. 화면 상단에 기준일 안내를 표시한다.
@@ -348,16 +348,16 @@ UI(대시보드 · 시간대/요일 막대, 추이, 테이블 TOP5) → A/views/
 
 ## 4. 메뉴 품절 조회 · 중복 고객 정보 제외 (구현·기능 테스트 완료)
 
-### 4-1. `GET /admin/api/alerts`
+### 4-1. `GET /api/admin/alerts`
 
 **사용자 요청에 따른 범위 조정 (2026-10-17)**: 고객 목록과 겹치는 전체 회원·휴면 고객·문자 수신 가능 카드를 대시보드에서 제외하고, 하위 메뉴 이름을 `메뉴 · 운영`에서 `메뉴`로 변경한다. 기존 TODO의 휴면 알림은 이번 요청에서 제외하며 고객 정보는 고객 등급 > 고객 목록에 유지한다. 메뉴 화면에는 인기 메뉴, AI 지표와 품절 현황만 표시한다.
 
-**현재 상태**: API 모드는 DB에서 품절과 인기 여부를 읽는다. 더미 모드는 기존 화면 계산을 유지한다. `GET /admin/api/alerts`는 품절 메뉴마다 `{kind: "soldout", menu_id, name, title, detail, popular}`를 반환하며, 품절이 없으면 빈 목록, 미인증 요청은 401이다. `alerts` 테이블에 기록하거나 스키마를 바꾸지 않는다.
+**현재 상태**: API 모드는 DB에서 품절과 인기 여부를 읽는다. 더미 모드는 기존 화면 계산을 유지한다. `GET /api/admin/alerts`는 품절 메뉴마다 `{kind: "soldout", menu_id, name, title, detail, popular}`를 반환하며, 품절이 없으면 빈 목록, 미인증 요청은 401이다. `alerts` 테이블에 기록하거나 스키마를 바꾸지 않는다.
 
 **흐름**
 ```
 UI(대시보드 > 메뉴 > 메뉴 판매 현황) → A/views/dashboard.py render_menu_stock → repo.menu_alerts()
- → GET /admin/api/alerts → B/routers/admin/alerts.py
+ → GET /api/admin/alerts → B/routers/admin/alerts.py
  → B/stores/stats.py menu_stock()·menu_sales() → DB(menus, orders, order_items, order_item_components)
  → B/services/stats.py menu_stock_alerts() → 품절 목록·인기 품절 목록 → UI 카드
 ```
@@ -377,7 +377,7 @@ UI(대시보드 > 메뉴 > 메뉴 판매 현황) → A/views/dashboard.py render
 - 검토 중 한쪽 주문만 있을 때 AI·일반 객단가가 모두 숨겨지는 오류도 수정했다. 집계된 쪽은 금액, 없는 쪽은 `-`를 표시하고 최근 30일 기준을 명시한다.
 - 신규 서버 테스트 `BT/test_sooyong_menu_stock.py` **6 passed**, 신규 화면 테스트 `T/test_sooyong_dashboard_menu.py` **5 passed**. 기존 통계와 함께 지정 테스트는 서버 **57 passed**, 화면 **13 passed**다. 화면 테스트는 중복 제거·고객 목록 유지·실제 DB 표시·품절 해제·빈 DB·AI 주문만 있는 경우·옛 북마크·더미 모드를 검증한다.
 - 전체 서버 **150 passed, 9 skipped**, 전체 화면·통합 **108 passed, 12 skipped, 7 failed**. 실패는 이전 작업에서 원본 재현을 확인한 룰렛 7개뿐이다. 테스트를 skip·삭제하지 않았고, 요청에 따라 로컬 커밋만 진행하며 PR·push는 하지 않는다.
-- 실제 Supabase에서 읽기 전용 트랜잭션으로 `/admin/api/alerts` 200을 확인했다. DB의 품절 메뉴 ID 목록과 API가 일치하며 품절 1개·인기 품절 0개다. 기존 추가 통계 API도 모두 200이며 실제 DB 기록은 변경하지 않았다.
+- 실제 Supabase에서 읽기 전용 트랜잭션으로 `/api/admin/alerts` 200을 확인했다. DB의 품절 메뉴 ID 목록과 API가 일치하며 품절 1개·인기 품절 0개다. 기존 추가 통계 API도 모두 200이며 실제 DB 기록은 변경하지 않았다.
 
 ---
 
@@ -399,7 +399,7 @@ UI(대시보드 > 메뉴 > 메뉴 판매 현황) → A/views/dashboard.py render
 
 - [x] 5-1. `B/stores/grade_rules.py`에 `app_settings` 읽기·쓰기를 추가했다. `grade_rule` 한 행을 upsert하고 `updated_at`을 갱신한다.
 - [x] 5-2. `grade_rule()`의 기존 인자·반환 필드를 유지하고 DB 연결을 선택 인자로 추가했다. 고객 목록·등급 집계·통계·단골 추천·문자 대상·AI 문자 후보가 저장 기준을 사용한다.
-- [x] 5-3. `PUT /admin/api/customers/grades/rules`를 추가했다. 단골 기준이 재방문 기준 이하이거나 잘못된 값이면 422, 인증이 없으면 401. 기존 GET 응답 모양을 유지했다.
+- [x] 5-3. `PUT /api/admin/customers/grades/rules`를 추가했다. 단골 기준이 재방문 기준 이하이거나 잘못된 값이면 422, 인증이 없으면 401. 기존 GET 응답 모양을 유지했다.
 - [x] 5-4. 화면에 "기준 저장" 버튼을 추가했다. 숫자를 수정하는 동안에는 해당 입력칸만 바꾸며 다른 입력칸·조건표·고객 수·DB는 유지한다. 저장 성공 후 조건에 적용하고 입력한 숫자도 그대로 남긴다. "기본값 복원"은 마지막 저장값과 구분해 초기 기준 2회·5회·30일을 미리 보여 주며, DB 반영은 기준 저장을 눌렀을 때만 한다. 미저장 입력·저장 성공·저장 실패를 구분하고 더미 모드의 실제 DB 저장은 막는다.
 - [x] 5-5. 서버·DB 시드·함수·뷰의 휴면 기본값을 30일로 통일하고 실제 Supabase에 적용했다. 기존 2회·5회·60일 시드만 갱신하며 사용자 지정 기준은 보존한다. `docs/DB_설계.md`와 `docs/팀_공지.md`에 변경을 기록했다.
 - [x] 5-6. `backend/tests/test_sooyong_grade_rules.py`, `tests/test_sooyong_grade_rules.py`에 영구 저장·재접속·미리보기 우선순위·설정값 대체·422·401·집계/추천/문자 반영·화면 저장 실패·다른 관리자 변경 반영 테스트를 추가하고 전체 테스트를 통과했다.

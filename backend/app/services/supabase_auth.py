@@ -14,6 +14,7 @@ import httpx
 
 from app.core.settings import Settings
 from app.services.kakao import KakaoError, fetch_account
+from app.core.api_paths import API_PREFIX
 
 
 class SupabaseAuthError(Exception):
@@ -37,7 +38,7 @@ class SupabaseAuthClient:
 
     def callback_url(self, token: str) -> str:
         # 쿼리스트링 대신 경로에 토큰을 넣는다: Supabase Redirect URLs 의 `/**` 와일드카드로 허용된다.
-        return f"{self.s.public_base_url}/api/auth/supabase/callback/{token}"
+        return f"{self.s.public_base_url}{API_PREFIX}/auth/supabase/callback/{token}"
 
     def authorize_url(self, token: str, code_challenge: str) -> str:
         return f"{self.base}/authorize?" + urlencode({

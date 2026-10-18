@@ -1,4 +1,4 @@
--- F&BGrowth Supabase(Postgres) 스키마 — API v6 목록표 기준 (2026-10-15)
+-- F&BGrowth Supabase(Postgres) 스키마 (2026-10-15), API 경로 주석은 현재 라우트 기준
 -- 실행 순서: 이 파일 전체를 SQL Editor 또는 마이그레이션으로 한 번에 실행. 여러 번 실행해도 되도록 IF NOT EXISTS 사용.
 -- 서버(FastAPI)는 DATABASE_URL(서비스 롤)로 접속하므로 RLS를 우회한다. RLS는 브라우저·anon 키 접근을 막는 안전장치.
 -- 시각은 모두 timestamptz(UTC 저장), 화면 표시는 KST로 변환.
@@ -15,7 +15,7 @@ end $$;
 -- =====================================================================
 -- 1. 매장·메뉴 (손님/관리자 공용 콘텐츠)
 -- =====================================================================
--- GET /api/v1/store
+-- GET /api/store
 create table if not exists store_info (
   id          smallint primary key default 1 check (id = 1),   -- 매장 1개 (한 줄만 허용)
   name        text not null,
@@ -24,7 +24,7 @@ create table if not exists store_info (
   tables      integer not null default 30 check (tables >= 1)  -- 전체 테이블 수 (?table= 번호 검증)
 );
 
--- GET /api/v1/categories, POST·PATCH·DELETE /api/v1/owner/categories
+-- GET /api/categories, GET·POST /api/admin/categories, PATCH·DELETE /api/admin/categories/{category_id}
 create table if not exists categories (
   id          text primary key,
   name        text not null unique,
@@ -35,7 +35,7 @@ create table if not exists categories (
   sort_order  integer not null default 0
 );
 
--- GET /api/v1/menus, /api/v1/owner/menus 및 POST·PATCH·DELETE, PATCH weights
+-- GET /api/menus, GET /api/admin/menus, PUT·DELETE /api/admin/menus/{menu_id} (가중치도 같은 PUT)
 create table if not exists menus (
   id           text primary key,
   category_id  text not null references categories(id) on update cascade on delete restrict,  -- 메뉴가 있으면 카테고리 삭제 불가
@@ -71,7 +71,7 @@ create trigger menus_updated_at before update on menus for each row execute func
 -- =====================================================================
 -- 2. 회원·로그인·룰렛
 -- =====================================================================
--- GET /api/v1/members/me, 카카오 로그인(auth/kakao/*), 고객 목록(GET /api/admin/customers)
+-- GET /api/members/me, 카카오 로그인(auth/kakao/*), 고객 목록(GET /api/admin/customers)
 create table if not exists members (
   id                    bigint generated always as identity primary key,
   kakao_id              text not null unique,
@@ -91,7 +91,7 @@ create table if not exists members (
 );
 create index if not exists members_last_visit_idx on members (last_visit_at);
 
--- POST /api/v1/auth/qr, GET /api/v1/auth/qr/{secret}, kakao/start·continue·callback
+-- POST /api/auth/qr, GET /api/auth/qr/{secret}, kakao/start·continue·callback
 -- 서버 메모리에 있던 QR 로그인 세션을 DB로 옮겨 서버가 여러 개여도 동작하게 한다. 로그인 토큰(JWT)은 저장하지 않는다.
 create table if not exists login_sessions (
   id                  uuid primary key default gen_random_uuid(),
@@ -110,7 +110,7 @@ create table if not exists login_sessions (
 );
 create index if not exists login_sessions_expires_idx on login_sessions (expires_at);
 
--- GET /api/v1/roulette/prizes, PUT /api/v1/owner/roulette/prizes (칸 2~8개, 가중치 합 0 초과는 서버에서 검증)
+-- GET /api/roulette/prizes, PUT /api/admin/owner/roulette/prizes (칸 2~8개, 가중치 합 0 초과는 서버에서 검증)
 create table if not exists roulette_prizes (
   id          bigint generated always as identity primary key,
   label       text not null,                                    -- 칸에 보이는 문구
@@ -126,7 +126,7 @@ create table if not exists roulette_prizes (
       or (kind = 'free' and menu_id is not null and percent is null))
 );
 
--- GET /api/v1/roulette/status, POST /api/v1/roulette/plays
+-- GET /api/tables/{table_no}/logins, PUT /api/tables/{table_no}/logins/prize
 -- 한 테이블(태블릿)에서 하루 동안 로그인한 회원과 룰렛 사용 결과. 회원당 하루 1회.
 create table if not exists table_logins (
   id               bigint generated always as identity primary key,
@@ -147,7 +147,7 @@ create unique index if not exists table_logins_one_play_per_day on table_logins 
 -- =====================================================================
 -- 3. 주문·직원 호출
 -- =====================================================================
--- 3-1. AI 추천 노출 기록 (POST /api/v1/ai/recommendations 가 저장, 관리자 AI 적중률의 분모)
+-- 3-1. AI 추천 노출 기록 (POST /api/recommendations 가 저장, 관리자 AI 적중률의 분모)
 create table if not exists recommendation_events (
   id            bigint generated always as identity primary key,
   table_no      integer not null check (table_no >= 1),
@@ -160,7 +160,7 @@ create table if not exists recommendation_events (
 );
 create index if not exists recommendation_events_created_idx on recommendation_events (created_at);
 
--- 3-2. 주문 (POST /api/v1/orders, GET /api/v1/tables/{tableId}/orders, GET /api/v1/owner/orders)
+-- 3-2. 주문 (POST /api/orders, 테이블 누적 주문 API(미등록), GET /api/admin/orders)
 create table if not exists orders (
   id                        bigint generated always as identity primary key,
   table_no                  integer not null check (table_no >= 1),
@@ -199,7 +199,7 @@ create table if not exists order_item_components (
 );
 create index if not exists order_item_components_item_idx on order_item_components (order_item_id);
 
--- 쿠폰함: GET /api/v1/coupons, GET /api/tables/{n}/coupons, POST /api/orders(coupon_ids)
+-- 쿠폰함: GET /api/coupons, GET /api/tables/{table_no}/coupons, POST /api/orders(coupon_ids)
 -- 룰렛에 당첨되면 쿠폰이 한 장 생기고(table_login_id 로 어느 룰렛 기록인지 연결), 주문에 쓰면 used_at 이 채워진다.
 create table if not exists coupons (
   id             bigint generated always as identity primary key,
@@ -223,7 +223,7 @@ create index if not exists coupons_order_idx on coupons (used_order_id);
 create index if not exists coupons_menu_idx on coupons (menu_id);
 create index if not exists coupons_prize_idx on coupons (prize_id);
 
--- 3-3. 직원 호출 (POST /api/v1/staff-calls, GET /api/v1/staff-call-items)
+-- 3-3. 직원 호출 (POST /api/calls, GET /api/content/staff_calls)
 create table if not exists staff_call_items (
   id          bigint generated always as identity primary key,
   label       text not null unique check (char_length(label) between 1 and 20),
@@ -240,7 +240,7 @@ create table if not exists staff_calls (
 create index if not exists staff_calls_created_idx on staff_calls (created_at desc);
 
 -- =====================================================================
--- 4. AI 추천 콘텐츠 (GET /api/v1/ai/questions, /weather/current, /ai/recommendation-rules)
+-- 4. AI 추천 콘텐츠 (GET /api/content/quiz_questions, GET /api/content/weather, GET /api/content/rules)
 -- =====================================================================
 create table if not exists quiz_questions (
   id          text primary key,                                 -- hunger, stress, people, gender, kind, spicy, intent, budget
@@ -282,7 +282,7 @@ create table if not exists recommendation_rules (
 -- =====================================================================
 -- 5. 관리자: 계정·설정·알림·마케팅·챗봇
 -- =====================================================================
--- GET /api/v1/owner/me — Supabase Auth 사용자 중 사장님 계정
+-- 관리자 전용 로그인 API(미등록) — Supabase Auth 사용자 중 사장님 계정
 create table if not exists owners (
   user_id     uuid primary key references auth.users(id) on delete cascade,
   role        text not null default 'OWNER' check (role = 'OWNER'),
@@ -296,7 +296,7 @@ create table if not exists app_settings (
   updated_at  timestamptz not null default now()
 );
 
--- GET /api/admin/alerts, PATCH /api/admin/alerts/{alertId}
+-- GET /api/admin/alerts (품절 조회). 알림 확인·기록 API는 미등록.
 create table if not exists alerts (
   id               bigint generated always as identity primary key,
   kind             text not null check (kind in ('dormant', 'soldout', 'other')),
@@ -338,7 +338,7 @@ create table if not exists external_context (
   updated_at    timestamptz not null default now()
 );
 
--- AI 챗봇: POST·GET·DELETE /api/admin/marketing/chat/sessions…, POST …/messages
+-- AI 챗봇: 대화 세션·메시지 저장 API는 미등록.
 create table if not exists chat_sessions (
   id          uuid primary key default gen_random_uuid(),
   owner_id    uuid not null references auth.users(id) on delete cascade,

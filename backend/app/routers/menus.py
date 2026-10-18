@@ -1,8 +1,9 @@
 """손님 API: 메뉴 목록. (담당: 서준)"""
 
 from fastapi import APIRouter, Request
+from app.core.api_paths import API_PREFIX
 
-router = APIRouter(prefix="/api", tags=["사용자"])
+router = APIRouter(prefix=API_PREFIX, tags=["사용자"])
 
 
 

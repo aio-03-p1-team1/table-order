@@ -19,10 +19,10 @@
 | 순서 | 할 일 | API | 상태 |
 |---|---|---|---|
 | 0 | 0. 개발 흐름 확인 (테스트 버튼) | `POST /api/dev/db-test` (개발 전용) | 확인 전 |
-| 1 | 1. 매장 정보 | `GET /api/v1/store` | 더미 (가장 쉬움, 연습용) |
-| 2 | 2. 주문 저장 · 테이블 누적 · 주문 이력 | `POST /api/v1/orders`, `GET /api/v1/tables/{id}/orders`, `GET /api/v1/owner/orders` | 더미 / 미구현 |
-| 3 | 3. 룰렛 · 쿠폰함 | `roulette/status·plays`, `tables/{n}/logins/prize`, `coupons`, `tables/{n}/coupons`, `POST /api/orders`(쿠폰 사용) | 부분 / 더미 |
-| 4 | 4. AI 질문 · 추천 · 날씨 · 규칙 | `ai/questions`, `ai/recommendations`, `weather/current`, `ai/recommendation-rules` | 더미 |
+| 1 | 1. 매장 정보 | `GET /api/store` | 더미 (가장 쉬움, 연습용) |
+| 2 | 2. 주문 저장 · 테이블 누적 · 주문 이력 | `POST /api/orders`, `테이블 누적 주문 API(미등록)`, `GET /api/admin/orders` | 더미 / 미구현 |
+| 3 | 3. 룰렛 · 쿠폰함 | `GET /api/tables/{table_no}/logins`, `PUT /api/tables/{table_no}/logins/prize`, `GET /api/coupons`, `GET /api/tables/{table_no}/coupons`, `POST /api/orders`(쿠폰 사용) | 부분 / 더미 |
+| 4 | 4. AI 질문 · 추천 · 날씨 · 규칙 | `GET /api/content/quiz_questions`, `POST /api/recommendations`, `GET /api/content/weather`, `GET /api/content/rules` | 더미 |
 
 **다른 팀원과 겹치는 지점**
 
@@ -58,24 +58,24 @@
 
 ## 1. 매장 정보 (더미)
 
-### 1-1. `GET /api/v1/store`
+### 1-1. `GET /api/store`
 
 **목표**: 스플래시·헤더에 보이는 매장 이름·지점·슬로건·테이블 수를 DB(`store_info`)에서 읽어 돌려준다.
 
-**테스트 방법**: `BT/test_store_endpoint.py`(이미 있음)가 통과하는지 확인 → `GET /api/v1/store` 응답 키가 `name, branch, slogan, tables`인지 → `STORE_NAME=테스트` 환경변수로 서버를 띄워 값이 바뀌는지 수동 확인.
+**테스트 방법**: `BT/test_store_endpoint.py`(이미 있음)가 통과하는지 확인 → `GET /api/store` 응답 키가 `name, branch, slogan, tables`인지 → `STORE_NAME=테스트` 환경변수로 서버를 띄워 값이 바뀌는지 수동 확인.
 
 **중요 이론**: 읽기 전용 GET은 "라우터 → 서비스/스토어 → DB" 한 줄로 끝난다. `app.state.store_info`는 서버 시작 때 한 번 만들어 모든 요청이 공유한다 (`B/factory.py`).
 
 **흐름**
 ```
-UI(스플래시 매장명) → U/user_repository.py _fetch_content → GET /api/v1/store
+UI(스플래시 매장명) → U/user_repository.py _fetch_content → GET /api/store
  → B/routers/store.py store_info → B/stores/store_info.py get() → DB(store_info 1행)
  → {name, branch, slogan, tables} → U/state/context.py STORE → UI 매장명·지점
 ```
 
 **상세 설명 / TODO**
 
-- [ ] 더미 주석처리: `B/routers/store.py`의 `dummy.store()` 줄, `B/dummy/store_data.py`의 `store()`와 `ENDPOINTS`의 `"GET /api/store, /api/v1/store"` 줄.
+- [ ] 더미 주석처리: `B/routers/store.py`의 `dummy.store()` 줄, `B/dummy/store_data.py`의 `store()`와 `ENDPOINTS`의 `"GET /api/store"` 줄.
 - [ ] 라우터에서 `request.app.state.store_info.get()`을 돌려준다(`StoreInfoStore.get`은 이미 구현돼 있음).
 - [ ] `BT/test_dummy_get.py`의 `test_user_get_dummies`에서 store 줄을 빼고, `BT/test_store_endpoint.py`로 대체됐는지 확인.
 
@@ -83,7 +83,7 @@ UI(스플래시 매장명) → U/user_repository.py _fetch_content → GET /api/
 
 ## 2. 주문 (더미 / 미구현)
 
-### 2-1. `POST /api/v1/orders` (= `POST /api/orders`)
+### 2-1. `POST /api/orders`
 
 **목표**: 손님이 장바구니를 주문하면 `orders`·`order_items`(·`order_item_components`)에 저장한다. 로그인 회원이면 `member_id`를 붙이고, 줄 id가 `combo:`로 시작하면 AI 조합 주문(`ai_combo=true`)이다. 쿠폰 사용 처리는 3-4에서 같은 함수에 이어 붙인다.
 
@@ -121,7 +121,7 @@ UI(주문 확인 다이얼로그 · 주문하기) → U/ui/dialogs.py → ctx.RE
 - [ ] 주의: `ShopStore`가 메뉴를 쓰려면 서준의 `seed_menus()`가 필요하다. 서준 작업 전에는 `menu_id`를 null로 두고 테스트한다.
 - [ ] 화면 변경은 필요 없다(응답 `{no, ai_combo, used_coupon_ids}` 모양 유지).
 
-### 2-2. `GET /api/v1/tables/{tableId}/orders` (미구현)
+### 2-2. `테이블 누적 주문 API(미등록)` (미구현)
 
 **목표**: 주문내역 다이얼로그에 "이 테이블에서 지금까지 시킨 것"을 합계와 함께 보여준다. **`table_logins`의 로그인 시각 이후 주문만** 합산한다 (손님이 바뀌면 이전 손님 주문이 안 섞이게. `table_sessions` 테이블은 만들지 않는다).
 
@@ -131,7 +131,7 @@ UI(주문 확인 다이얼로그 · 주문하기) → U/ui/dialogs.py → ctx.RE
 
 **흐름**
 ```
-UI(🧾 주문내역 버튼) → U/ui/dialogs.py → (새) server.table_orders → GET /api/v1/tables/{n}/orders
+UI(🧾 주문내역 버튼) → U/ui/dialogs.py → (새) server.table_orders → 테이블 누적 주문 API(미등록)
  → B/routers/orders.py(신규) → B/stores/tablet_logins.py 로 기준 시각 조회 → B/stores/shop_orders.py 기간 조회
  → DB(table_logins, orders, order_items) → {orders:[...], total} → UI 주문내역 + 합계
 ```
@@ -141,7 +141,7 @@ UI(🧾 주문내역 버튼) → U/ui/dialogs.py → (새) server.table_orders �
 - [ ] `B/stores/shop_orders.py`에 `table_orders(table_no, since)` 추가, `B/stores/tablet_logins.py`에 기준 시각 조회 함수 추가(둘 다 재현 파일).
 - [ ] 화면: 지금 주문내역은 세션(`ss.orders`)에서 그린다. 서버 값으로 바꿀 때 `U/user_repository.py`에는 새 메서드만 추가한다.
 
-### 2-3. `GET /api/v1/owner/orders` (더미 · 관리자 주문 이력)
+### 2-3. `GET /api/admin/orders` (더미 · 관리자 주문 이력)
 
 **목표**: 관리자 > 주문 이력의 전체 주문·고객별 주문을 DB에서 읽는다. `member_id` 필터를 지원한다. 기간·테이블·금액·AI 사용 필터는 현재처럼 화면(`A/order_filters.py`)에서 처리한다.
 
@@ -151,14 +151,14 @@ UI(🧾 주문내역 버튼) → U/ui/dialogs.py → (새) server.table_orders �
 
 **흐름**
 ```
-UI(주문 이력 탭) → A/views/orders.py → repo.orders() (A/admin_repository.py) → GET /admin/api/orders?member_id=
+UI(주문 이력 탭) → A/views/orders.py → repo.orders() (A/admin_repository.py) → GET /api/admin/orders?member_id=
  → B/routers/admin/orders.py → B/stores/shop_orders.py orders() → DB(orders + order_items + members)
  → [{id, ts, table_no, total, lines, ai_combo, member_id, nickname}] → pandas 표 → UI 표 + 필터
 ```
 
 **상세 설명 / TODO**
 
-- [ ] 더미 주석처리: `B/routers/admin/orders.py`의 `dummy.orders()`/`dummy.members()` 사용부, `B/dummy/order_data.py`의 `orders`·`members`(수용의 통계 더미가 `members`를 쓰므로 수용과 순서를 맞춘다)와 `"GET /admin/api/orders"` 줄.
+- [ ] 더미 주석처리: `B/routers/admin/orders.py`의 `dummy.orders()`/`dummy.members()` 사용부, `B/dummy/order_data.py`의 `orders`·`members`(수용의 통계 더미가 `members`를 쓰므로 수용과 순서를 맞춘다)와 `"GET /api/admin/orders"` 줄.
 - [ ] 응답 모양은 `dummy.orders()`와 같게 유지(키: `id, table_no, member_id, total, roulette_discount_percent, ai_combo, recommendation_event_id, ts, lines`).
 
 ---
@@ -167,7 +167,7 @@ UI(주문 이력 탭) → A/views/orders.py → repo.orders() (A/admin_repositor
 
 **규칙(바꾸지 말 것)**: 룰렛은 회원당 하루 1회(KST). 같은 날 다른 테이블에서도 불가, 다음 날은 가능. 당첨은 즉시 적용하지 않고 `coupons`(쿠폰함)에 넣고, 주문 화면 쿠폰함에서 사용/취소하며 주문 시 `used_at`을 기록한다. 유효기간은 미정(`expires_at` null).
 
-### 3-1. `PUT /api/tables/{tableNo}/logins/prize` (당첨 기록 + 쿠폰 발급)
+### 3-1. `PUT /api/tables/{table_no}/logins/prize` (당첨 기록 + 쿠폰 발급)
 
 **목표**: 룰렛 결과를 `table_logins`에 기록하고 쿠폰을 발급한다. 이미 돌린 회원은 409.
 
@@ -185,7 +185,7 @@ UI(주문 이력 탭) → A/views/orders.py → repo.orders() (A/admin_repositor
 **흐름**
 ```
 UI(룰렛 돌리기) → U/ui/roulette.py → U/state/roulette.py spin_roulette → U/server.py save_prize
- → PUT /api/tables/{n}/logins/prize {member_id, prize, kind, percent|item_id}
+ → PUT /api/tables/{table_no}/logins/prize {member_id, prize, kind, percent|item_id}
  → B/routers/roulette.py tablet_login_prize → (검사) B/stores/coupons.py issued_today → B/stores/tablet_logins.py set_prize
  → B/stores/coupons.py issue → DB(table_logins UPDATE, coupons INSERT) → {ok, coupon}
  → U/state/coupons.py add_coupon → UI 쿠폰함에 쿠폰 추가
@@ -198,9 +198,9 @@ UI(룰렛 돌리기) → U/ui/roulette.py → U/state/roulette.py spin_roulette 
 - [ ] **쿠폰과 룰렛 칸 연결**: 뼈대에 자리를 이미 넣었다. `set_prize(table_no, member_id, prize, prize_id=None)`는 기록한 `table_logins` 행의 id를 돌려주고, `coupons.issue(..., prize_id=None, table_login_id=None)`에 그 값을 넣는다. `coupons.table_login_id`가 UNIQUE라 "룰렛 1번 = 쿠폰 1장"을 DB가 보장한다. 요청 `PrizeIn.prize_id`는 선택이라, 석원의 `roulette_prizes.list()`가 칸 `id`를 내려주기 전에는 화면이 보내지 않아도 동작한다(그 경우 `prize_id`는 null). 칸 `id`를 내려줄지는 석원과 합의한다.
 - [ ] `coupons.issued_today`와 `tablet_logins.record/list`는 성호의 QR 로그인이 쓰므로 이름·동작을 바꾸지 않는다.
 
-### 3-2. `GET /api/v1/roulette/status`, `POST /api/v1/roulette/plays`
+### 3-2. `GET /api/tables/{table_no}/logins`, `PUT /api/tables/{table_no}/logins/prize`
 
-**목표**: `status`는 "남은 기회·회원별 참여/당첨 상태", `plays`는 **서버가 당첨 칸을 정한다**. 지금은 화면(`U/state/roulette.py pick_prize_index`)이 직접 랜덤을 뽑고 서버는 결과만 받아 적는다. 서버가 결정하게 바꿔 조작을 막는다.
+**목표**: 로그인 목록 조회로 남은 기회·회원별 참여/당첨 상태를 확인하고, 당첨 기록 시 **서버가 당첨 칸을 정하도록** 개선한다. 지금은 화면(`U/state/roulette.py pick_prize_index`)이 직접 랜덤을 뽑고 서버는 결과를 받는 더미다. 서버가 결정하게 바꿔 조작을 막는다.
 
 **테스트 방법**: 새 `BT/test_roulette.py` — 가중치 0인 칸은 절대 안 나옴(`random`을 `monkeypatch`로 고정) / 하루 2회째 409 / 결과에 칸 번호와 할인율 또는 서비스 메뉴 id / 칸 구성은 석원의 store에서 읽는다.
 
@@ -209,7 +209,7 @@ UI(룰렛 돌리기) → U/ui/roulette.py → U/state/roulette.py spin_roulette 
 **흐름**
 ```
 UI(룰렛 돌리기 버튼) → U/state/roulette.py spin_roulette → (새) server.play_roulette
- → POST /api/v1/roulette/plays → B/routers/roulette.py(신규)
+ → PUT /api/tables/{table_no}/logins/prize → B/routers/roulette.py(신규)
  → [하루 1회 검사 coupons.issued_today] → B/stores/roulette_prizes.py list()(석원) → 가중치 추첨
  → tablet_logins.set_prize + coupons.issue → DB → {index, prize, coupon}
  → U/ui/roulette.py 회전 각도 계산·애니메이션 → UI 당첨 안내 + 쿠폰함
@@ -222,7 +222,7 @@ UI(룰렛 돌리기 버튼) → U/state/roulette.py spin_roulette → (새) serv
 - [ ] 화면 변경은 `U/state/roulette.py`·`U/server.py`·`U/ui/roulette.py`의 룰렛 부분만. 서버가 안 닿을 때의 로컬 추첨은 대체 경로로 남긴다.
 - [ ] 석원이 `roulette_prizes.list()`를 만들기 전에는 `U/menu_data.py`의 칸 구성을 임시로 쓰고 TODO 주석으로 표시한다.
 
-### 3-3. `GET /api/v1/coupons`, `GET /api/tables/{tableNo}/coupons`
+### 3-3. `GET /api/coupons`, `GET /api/tables/{table_no}/coupons`
 
 **목표**: 내 쿠폰 목록(안 쓴 것 먼저)과, 이 태블릿에 로그인한 회원들의 쿠폰함(닉네임 포함).
 
@@ -233,7 +233,7 @@ UI(룰렛 돌리기 버튼) → U/state/roulette.py spin_roulette → (새) serv
 **흐름**
 ```
 UI(🎟️ 쿠폰함 팝업) → U/ui/coupons.py → U/state/coupons.py load_coupons → server.table_coupons
- → GET /api/tables/{n}/coupons → B/routers/coupons.py table_coupons (user.py 의 tablet_rows 로 접근 확인)
+ → GET /api/tables/{table_no}/coupons → B/routers/coupons.py table_coupons (user.py 의 tablet_rows 로 접근 확인)
  → B/stores/coupons.py for_members → DB(coupons JOIN members) → [{id, member_id, nickname, kind, label, used_at...}]
  → UI 쿠폰 카드(사용/취소 버튼)
 ```
@@ -241,7 +241,7 @@ UI(🎟️ 쿠폰함 팝업) → U/ui/coupons.py → U/state/coupons.py load_cou
 **상세 설명 / TODO**
 
 - [ ] 더미 주석처리: `my_coupons`, `table_coupons`의 `dummy.*` 줄과 `B/dummy/coupon_data.py`의 `member_coupons`·`table_coupons`·`_coupons`·`_MEMBER_NAMES`, `coupon_data.py`의 `ENDPOINTS` 두 줄.
-- [ ] `coupons.for_member`, `coupons.for_members` 구현. 두 라우트의 별칭(`/v1/coupons`, `/coupons`)은 그대로 둔다.
+- [ ] `coupons.for_member`, `coupons.for_members` 구현. 조회는 `GET /api/coupons`, `GET /api/tables/{table_no}/coupons`를 사용한다.
 
 ### 3-4. `POST /api/orders` 쿠폰 사용 (`coupon_ids`)
 
@@ -271,7 +271,7 @@ UI(주문하기) → U/state/coupons.py pending_coupon_ids → create_order(coup
 
 **단계로 나눠 진행한다**: ① 읽기 API 3개 ② 노출 기록 저장 ③ (선택) 추천 계산을 서버로.
 
-### 4-1. `GET /api/v1/ai/questions`, `GET /api/v1/weather/current`, `GET /api/v1/ai/recommendation-rules`
+### 4-1. `GET /api/content/quiz_questions`, `GET /api/content/weather`, `GET /api/content/rules`
 
 **목표**: 질문(단계별 선택지), 현재 날씨, 추천 규칙을 DB 테이블(`quiz_questions`+`quiz_options`, `weather_types`+`weather_current`, `recommendation_rules`)에서 읽어 지금 화면이 받는 모양과 **똑같이** 돌려준다.
 
@@ -289,8 +289,8 @@ UI(주문하기) → U/state/coupons.py pending_coupon_ids → create_order(coup
 **흐름**
 ```
 UI(AI 질문 시작) → U/views/ai.py → ctx.QUESTIONS/WEATHER/RULES ← U/user_repository.py load_content
- → GET /api/v1/ai/questions · /weather/current · /ai/recommendation-rules
- → B/routers/ai.py(신규) → B/stores/ai_content.py(신규) / B/services/weather.py(신규)
+ → GET /api/content/quiz_questions · GET /api/content/weather · GET /api/content/rules
+ → B/routers/content.py content_item → (구현 목표) B/stores/ai_content.py / B/services/weather.py
  → DB(quiz_questions, quiz_options, weather_current, recommendation_rules)
  → 같은 모양의 JSON → UI 질문 카드 · "날씨 ○○" 표시
 ```
@@ -303,7 +303,7 @@ UI(AI 질문 시작) → U/views/ai.py → ctx.QUESTIONS/WEATHER/RULES ← U/use
 - [ ] `B/services/weather.py`(신규): 외부 날씨 API 연동 전에는 `weather_current`의 값을 읽기만 한다. 성호가 이 함수를 가져다 쓰니 `current_weather() -> {code, label, icon}` 같은 단순한 이름으로 정하고 성호에게 알린다.
 - [ ] `U/user_repository.py`: `ENDPOINTS`·`_fetch_content`에서 본인 항목만 새 경로로 바꾼다. 서준(메뉴)·석원(룰렛·직원호출)도 같은 함수를 고치므로 **각자 자기 줄만** 바꾸고 PR을 작게 올린다.
 
-### 4-2. `POST /api/v1/ai/recommendations` (추천 기록 저장 · 더미)
+### 4-2. `POST /api/recommendations` (추천 기록 저장 · 더미)
 
 **목표**: 손님에게 추천 조합이 노출된 사실을 `recommendation_events`에 저장한다(관리자 AI 적중률의 분모). 지금 화면은 `POST /api/recommendations`로 이미 호출 중이다.
 
@@ -321,12 +321,12 @@ UI(추천 조합 카드 표시) → U/views/ai.py log_recommendation → ctx.REP
 **상세 설명 / TODO**
 
 - [ ] 더미 주석처리: `log_recommendation`의 `dummy.recommendation_logged()`, `B/dummy/recommend_data.py`의 `recommendation_logged`·`"POST /api/recommendations"` 줄.
-- [ ] `add_recommendation`, `recommendation_count` 구현(파일 안 TODO). 새 경로 `/api/v1/ai/recommendations`는 `B/routers/ai.py`에 같은 함수를 연결한다(기존 경로 별칭 유지).
+- [ ] `add_recommendation`, `recommendation_count` 구현(파일 안 TODO). `B/routers/ai.py`의 `POST /api/recommendations`에서 호출한다.
 - [ ] `orders.recommendation_event_id`로 주문과 추천을 연결하는 부분은 4-3에서.
 
 ### 4-3. (선택) 추천 조합 계산을 서버로
 
-**목표**: `POST /api/v1/ai/recommendations`가 답변(인원·예산·맵기·음료 등)과 시간대·날씨로 **조합을 계산해 돌려준다**. 지금은 화면에서 계산하므로 시연에는 필수가 아니다. 1~2단계가 끝난 뒤 여유가 있을 때만 한다.
+**목표**: `POST /api/recommendations`가 답변(인원·예산·맵기·음료 등)과 시간대·날씨로 **조합을 계산해 돌려준다**. 지금은 화면에서 계산하므로 시연에는 필수가 아니다. 1~2단계가 끝난 뒤 여유가 있을 때만 한다.
 
 **테스트 방법**: `user/test_recommendations.py`의 기존 케이스와 같은 입력으로 서버 결과가 같은 조합 id를 돌려준다.
 

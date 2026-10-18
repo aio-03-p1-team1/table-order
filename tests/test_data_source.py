@@ -13,6 +13,7 @@ from streamlit.testing.v1 import AppTest
 from app.core.settings import Settings
 from app.factory import create_app
 from shared import api
+from shared.api_paths import ADMIN_API_PREFIX
 
 APP = str(ROOT / "user" / "app.py")
 ADMIN = {"Authorization": "Bearer admin-secret"}
@@ -52,8 +53,8 @@ def open_chicken(app):
 
 @pytest.mark.skip(reason="GET 이 더미라 저장한 값이 조회에 반영되지 않음 - 해당 GET 을 DB 로 구현하면 이 skip 을 지운다")
 def test_api_mode_uses_server_data_and_admin_edits_show_up(server, monkeypatch):
-    server.put("/admin/api/menus/c2", headers=ADMIN, json={"price": 21000})
-    server.put("/admin/api/menus/c3", headers=ADMIN, json={"soldout": True})
+    server.put(f"{ADMIN_API_PREFIX}/menus/c2", headers=ADMIN, json={"price": 21000})
+    server.put(f"{ADMIN_API_PREFIX}/menus/c3", headers=ADMIN, json={"soldout": True})
     app = run_app("api", monkeypatch)
     assert app.session_state["data_source"] == "api" and not app.exception
     page = open_chicken(app)
@@ -63,7 +64,7 @@ def test_api_mode_uses_server_data_and_admin_edits_show_up(server, monkeypatch):
 
 
 def test_dummy_mode_ignores_the_server_even_when_it_is_up(server, monkeypatch):
-    server.put("/admin/api/menus/c2", headers=ADMIN, json={"price": 21000})
+    server.put(f"{ADMIN_API_PREFIX}/menus/c2", headers=ADMIN, json={"price": 21000})
     app = run_app("dummy", monkeypatch)
     assert app.session_state["data_source"] == "dummy"
     page = open_chicken(app)
@@ -75,7 +76,7 @@ def test_content_edited_on_server_changes_the_screen(server, monkeypatch):
     """직원 호출 항목·카테고리 같은 '콘텐츠'도 서버에서 바꾸면 화면에 반영된다."""
     cats = server.get("/api/content/categories").json()
     cats[2]["name"] = "서버에서 바꾼 이름"
-    assert server.put("/admin/api/content/categories", headers=ADMIN, json=cats).status_code == 200
+    assert server.put(f"{ADMIN_API_PREFIX}/content/categories", headers=ADMIN, json=cats).status_code == 200
     app = run_app("api", monkeypatch)
     app.button(key="start_btn").click().run()
     assert app.button(key="cat_chicken").label.endswith("서버에서 바꾼 이름")
@@ -84,7 +85,7 @@ def test_content_edited_on_server_changes_the_screen(server, monkeypatch):
 @pytest.mark.skip(reason="GET 이 더미라 저장한 값이 조회에 반영되지 않음 - 해당 GET 을 DB 로 구현하면 이 skip 을 지운다")
 def test_orders_are_sent_to_the_server_only_in_api_mode(server, monkeypatch):
     for mode, expected in (("api", 1), ("dummy", 0)):
-        before = len(server.get("/admin/api/orders", headers=ADMIN).json())
+        before = len(server.get(f"{ADMIN_API_PREFIX}/orders", headers=ADMIN).json())
         app = run_app(mode, monkeypatch)
         app.button(key="start_btn").click().run()
         app.button(key="cat_chicken").click().run()
@@ -93,7 +94,7 @@ def test_orders_are_sent_to_the_server_only_in_api_mode(server, monkeypatch):
         app.session_state["confirm_order"] = True
         next(b for b in app.get("button") if b.proto.label == "주문하기").click().run()
         assert len(app.session_state["orders"]) == 1 and not app.exception
-        after = server.get("/admin/api/orders", headers=ADMIN).json()
+        after = server.get(f"{ADMIN_API_PREFIX}/orders", headers=ADMIN).json()
         assert len(after) - before == expected, mode
         if expected:
             assert after[0]["table_no"] == 12 and after[0]["lines"][0]["id"] == "c1"
@@ -104,7 +105,7 @@ def test_orders_are_sent_to_the_server_only_in_api_mode(server, monkeypatch):
 def test_quiz_results_use_server_rules_and_log_impressions(server, monkeypatch):
     rules = server.get("/api/content/rules").json()
     rules["pairings"] = [p for p in rules["pairings"] if p[0] != "classic"]  # 서버 규칙에서 조합 하나를 뺀다
-    server.put("/admin/api/content/rules", headers=ADMIN, json=rules)
+    server.put(f"{ADMIN_API_PREFIX}/content/rules", headers=ADMIN, json=rules)
     app = run_app("api", monkeypatch)
     app.button(key="start_btn").click().run()
     app.button(key="open_quiz").click().run()
@@ -114,7 +115,7 @@ def test_quiz_results_use_server_rules_and_log_impressions(server, monkeypatch):
     assert not app.exception
     names = " ".join(h.value for h in app.get("html"))
     assert "바삭한 치킨 한 상" not in names  # 서버 규칙 반영
-    stats = server.get("/admin/api/stats", headers=ADMIN).json()
+    stats = server.get(f"{ADMIN_API_PREFIX}/stats", headers=ADMIN).json()
     assert stats["ai"]["recommendations"] == 1  # 노출이 서버에 기록됨
 
 

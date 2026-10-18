@@ -9,6 +9,7 @@ from urllib.parse import quote, urlencode
 import httpx
 
 from app.core.settings import Settings
+from app.core.api_paths import API_PREFIX
 
 AUTHORIZE_URL = "https://kauth.kakao.com/oauth/authorize"
 TOKEN_URL = "https://kauth.kakao.com/oauth/token"
@@ -61,7 +62,7 @@ class KakaoClient:
 
     def authorize_url(self, state: str) -> str:
         if self.mock:
-            return f"{self.s.public_base_url}/api/auth/kakao/mock?state={quote(state)}"
+            return f"{self.s.public_base_url}{API_PREFIX}/auth/kakao/mock?state={quote(state)}"
         return AUTHORIZE_URL + "?" + urlencode({
             "client_id": self.s.kakao_rest_api_key, "redirect_uri": self.s.kakao_redirect_uri,
             "response_type": "code", "state": state, "scope": ",".join(self.s.kakao_scopes.split())})

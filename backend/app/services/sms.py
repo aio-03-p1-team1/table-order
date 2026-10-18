@@ -3,14 +3,11 @@
 SMS_DRY_RUN=true(기본)이면 외부를 호출하지 않고 로그만 남긴다.
 """
 
-import hashlib
-import hmac
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from datetime import time as dtime
 
-import httpx
-
+from app.clients.solapi import SolapiClient, solapi_auth
 from app.core.settings import Settings
 from app.services.grades import KST, grade_of
 from app.stores.members import MemberStore
@@ -20,14 +17,7 @@ from app.stores.sms_logs import SmsLogStore
 SMS_LIMIT_BYTES = 90
 MIN_LEAD = timedelta(minutes=10)  # 예약은 지금부터 최소 10분 뒤
 NIGHT_START, NIGHT_END = dtime(21, 0), dtime(8, 0)  # 광고성 문자 야간 발송 제한
-SOLAPI_BASE = "https://api.solapi.com"
 SOLAPI_CHUNK = 1000  # 솔라피 send-many 1회 호출 상한은 10,000건이지만 여유를 둔다
-
-
-def solapi_auth(api_key: str, api_secret: str, date: str, salt: str) -> str:
-    """솔라피 HMAC-SHA256 인증 헤더 (공식 SDK authenticator 와 같은 규칙)."""
-    sig = hmac.new(api_secret.encode(), (date + salt).encode(), hashlib.sha256).hexdigest()
-    return f"HMAC-SHA256 ApiKey={api_key}, Date={date}, salt={salt}, signature={sig}"
 
 
 class SmsRejected(Exception):
@@ -49,10 +39,11 @@ def is_night(now: dtime) -> bool:
 
 
 class SmsService:
-    def __init__(self, settings: Settings, members: MemberStore, logs: SmsLogStore, clock=None, http=None):
+    def __init__(self, settings: Settings, members: MemberStore, logs: SmsLogStore,
+                 solapi: SolapiClient, clock=None):
         self.s, self.members, self.logs = settings, members, logs
         self.clock = clock or (lambda: datetime.now(KST))
-        self.http = http  # 테스트에서 가짜 httpx.Client 주입
+        self.solapi = solapi
 
     def _configured(self) -> bool:
         s = self.s
@@ -79,6 +70,17 @@ class SmsService:
         used = self.logs.usage(month)
         return {"month": month, "used": used,
                 "limit": {"SMS": self.s.sms_monthly_limit, "LMS": self.s.lms_monthly_limit}}
+
+    def balance(self) -> dict:
+        """솔라피에 충전된 잔액(원)과 포인트를 조회한다. 키가 없거나 호출이 실패해도 화면이 깨지지 않게 available=False 로 돌려준다."""
+        s = self.s
+        if not (s.solapi_api_key and s.solapi_api_secret):
+            return {"available": False, "reason": "솔라피 API 키가 설정되지 않았습니다."}
+        try:
+            data = self.solapi.get_balance()
+            return {"available": True, "balance": data.get("balance", 0), "point": data.get("point", 0)}
+        except Exception as e:  # 네트워크·인증 오류 모두 화면에는 이유만 전달
+            return {"available": False, "reason": f"잔액 조회 실패: {e}"[:200]}
 
     def preview(self, grades: list[str], body: str, scheduled_at: datetime | None = None,
                 member_ids: list[int] | None = None) -> dict:
@@ -180,47 +182,12 @@ class SmsService:
         rid = log["request_id"] or ""
         if not rid.startswith("dryrun-"):
             try:
-                self._cancel_solapi(rid)
+                self.solapi.cancel_schedule(rid)
             except Exception as e:
                 raise SmsRejected([f"솔라피 예약 취소 실패: {e}"]) from e
         self.logs.set_status(log_id, "canceled")
         return {**log, "status": "canceled"}
 
-    def _cancel_solapi(self, group_id: str) -> None:
-        s = self.s
-        date = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        headers = {"Authorization": solapi_auth(s.solapi_api_key, s.solapi_api_secret, date, uuid.uuid4().hex)}
-        client = self.http or httpx.Client(timeout=10)
-        r = client.delete(f"{SOLAPI_BASE}/messages/v4/groups/{group_id}/schedule", headers=headers)
-        if r.status_code >= 400:
-            raise RuntimeError(f"HTTP {r.status_code} {r.text[:200]}")
-
     def _call_solapi(self, kind: str, text: str, phones: list[str], scheduled_at: datetime | None = None) -> str:
-        """send-many/detail 로 한 묶음을 보내고 그룹 ID 를 돌려준다."""
-        s = self.s
-        date = datetime.now(timezone.utc).isoformat(timespec="seconds")
-        headers = {"Authorization": solapi_auth(s.solapi_api_key, s.solapi_api_secret, date, uuid.uuid4().hex),
-                   "Content-Type": "application/json"}
-        sender = s.solapi_sender_number.replace("-", "")
-        messages = []
-        for p in phones:
-            m = {"to": p.replace("-", ""), "from": sender, "text": text, "type": kind}
-            if kind == "LMS":
-                m["subject"] = f"(광고){s.store_name}"[:40]
-            messages.append(m)
-        client = self.http or httpx.Client(timeout=10)
-        payload = {"messages": messages}
-        if scheduled_at:
-            payload["scheduledDate"] = scheduled_at.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
-        r = client.post(SOLAPI_BASE + "/messages/v4/send-many/detail", json=payload, headers=headers)
-        if r.status_code >= 400:
-            try:
-                err = r.json()
-                raise RuntimeError(f"{err.get('errorCode', r.status_code)} {err.get('errorMessage', '')}".strip())
-            except ValueError:
-                raise RuntimeError(f"HTTP {r.status_code} {r.text[:200]}") from None
-        data = r.json()
-        count = (data.get("groupInfo") or {}).get("count") or {}
-        if phones and count.get("total") and count.get("total") == count.get("registeredFailed"):
-            raise RuntimeError(f"모든 메시지 접수 실패: {str(data.get('failedMessageList'))[:200]}")
-        return (data.get("groupInfo") or {}).get("groupId") or data.get("groupId", "")
+        """전송은 Solapi 클라이언트에 맡기고 그룹 ID만 받는다."""
+        return self.solapi.send_messages(kind, text, phones, scheduled_at)

@@ -9,8 +9,9 @@ from app.factory import create_app
 from app.routers.admin import members as member_routes
 from app.services.grades import KST, grade_counts
 from tests.conftest import ADMIN, settings
+from app.core.api_paths import ADMIN_API_PREFIX
 
-BASE = "/admin/api/customers"
+BASE = f"{ADMIN_API_PREFIX}/customers"
 TODAY = datetime(2026, 10, 16, 12, tzinfo=KST)
 EXPECTED = {"신규": 1, "재방문": 1, "단골": 1, "휴면": 1, "dormant_count": 1}
 
@@ -73,16 +74,16 @@ def test_invalid_preview_is_rejected(client, query):
     assert client.get(f"{BASE}/grades", headers=ADMIN, params=query).status_code == 422
 
 
-@pytest.mark.parametrize("path", [f"{BASE}/grades", f"{BASE}/grades/rules", BASE, "/admin/api/members"])
+@pytest.mark.parametrize("path", [f"{BASE}/grades", f"{BASE}/grades/rules", BASE, f"{ADMIN_API_PREFIX}/members"])
 def test_customer_endpoints_require_admin_token(client, path):
     assert client.get(path).status_code == 401
     assert client.get(path, headers={"Authorization": "Bearer wrong"}).status_code == 401
 
 
 def test_customer_alias_keeps_existing_member_response_and_opt_out(grade_client):
-    old = grade_client.get("/admin/api/members", headers=ADMIN).json()
+    old = grade_client.get(f"{ADMIN_API_PREFIX}/members", headers=ADMIN).json()
     assert grade_client.get(BASE, headers=ADMIN).json() == old
-    for member, prefix in zip(old["members"][:2], (BASE, "/admin/api/members")):
+    for member, prefix in zip(old["members"][:2], (BASE, f"{ADMIN_API_PREFIX}/members")):
         response = grade_client.post(f"{prefix}/{member['id']}/opt-out", headers=ADMIN)
         assert response.status_code == 200 and response.json() == {"ok": True}
         assert grade_client.app.state.members.get(member["id"])["opted_out"]

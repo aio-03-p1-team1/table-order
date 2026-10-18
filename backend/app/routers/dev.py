@@ -3,8 +3,9 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.core.settings import Settings, get_settings
+from app.core.api_paths import API_PREFIX
 
-router = APIRouter(prefix="/api/dev", tags=["개발"])
+router = APIRouter(prefix=f"{API_PREFIX}/dev", tags=["개발"])
 
 
 @router.post("/db-test")

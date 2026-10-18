@@ -1,6 +1,6 @@
 """관리자 화면용 더미 데이터 — '서버와 똑같은 JSON'을 돌려주는 가짜 서버(DummyBackend).
 
-반환 모양은 백엔드 /admin/api/* 응답과 같다. 그래서 화면과 변환 코드(admin_repository.py)는
+반환 모양은 백엔드 /api/admin/* 응답과 같다. 그래서 화면과 변환 코드(admin_repository.py)는
 데이터가 더미인지 서버인지 모르고, DATA_SOURCE 만 바꾸면 전환된다.
 """
 import copy
@@ -47,7 +47,7 @@ MENUS = [
 ]
 
 # 손님 화면과 같은 룰렛 칸에 관리자용 확률 가중치(weight)를 더한다.
-ROULETTE_PRIZES = [{**p, "weight": 1} for p in menu_data.ROULETTE_PRIZES]
+ROULETTE_PRIZES = [{**p, "weight": 50 if i == 0 else 10} for i, p in enumerate(menu_data.ROULETTE_PRIZES)]
 
 
 class Unsupported(Exception):
@@ -98,9 +98,11 @@ class DummyBackend:
             # 실제 매장처럼 로그인한 회원 주문과 로그인하지 않은 비회원 주문을 함께 만든다.
             # 고정 시드를 쓰므로 화면과 테스트에서는 매번 같은 약 75%의 회원 주문 비율이 나온다.
             member_id = r.choice(self.members_)["id"] if r.random() < 0.75 else None
+            # 성과 화면에서 도입 전후를 비교할 수 있도록 더미 AI 마케팅은 최근 14일부터 시작한 것으로 둔다.
+            ai_adopted = day >= TODAY - timedelta(days=14)
             self.orders_.append({"id": i, "ts": _iso(ts), "table_no": r.randint(1, 30), "member_id": member_id,
                                  "lines": lines, "total": sum(l["unit"] * l["qty"] for l in lines),
-                                 "ai_combo": r.random() < 0.45,
+                                 "ai_combo": ai_adopted and r.random() < 0.45,
                                  "roulette_discount_percent": 0, "recommendation_event_id": None})
         self.orders_.sort(key=lambda o: o["ts"], reverse=True)
         # 직원 호출 화면을 서버 없이 먼저 확인할 수 있도록 대기/완료 호출을 함께 준비한다.
@@ -151,6 +153,42 @@ class DummyBackend:
             self.menus_.append(cur)
         cur.update(fields)
         return dict(cur)
+
+    def save_menus(self, items: list[dict]) -> dict:
+        """모든 새 메뉴 입력을 먼저 확인한 뒤 더미 메뉴 목록도 한 번에 갱신한다."""
+        ids = [item.get("id") for item in items]
+        if not items or any(not menu_id for menu_id in ids) or len(ids) != len(set(ids)):
+            raise ValueError("저장할 메뉴 ID가 비었거나 중복되었습니다.")
+        existing_ids = {menu["id"] for menu in self.menus_}
+        required = ("name", "cat", "price")
+        for menu_id, item in zip(ids, items):
+            if item.get("delete") is True:
+                if menu_id not in existing_ids:
+                    raise Unsupported("메뉴를 찾을 수 없습니다.")
+                if set(item) - {"id", "delete"}:
+                    raise ValueError("삭제 항목에는 ID와 delete만 보낼 수 있습니다.")
+            elif menu_id not in existing_ids and any(key not in item for key in required):
+                raise ValueError("새 메뉴에는 이름, 카테고리, 가격이 필요합니다.")
+
+        # 중간 입력 오류가 나도 일부 행만 바뀌지 않도록 복사본에서 모두 반영한다.
+        updated = [dict(menu) for menu in self.menus_]
+        by_id = {menu["id"]: menu for menu in updated}
+        for item in items:
+            menu_id = item["id"]
+            if item.get("delete") is True:
+                updated = [menu for menu in updated if menu["id"] != menu_id]
+                by_id.pop(menu_id)
+                continue
+            menu = by_id.get(menu_id)
+            if menu is None:
+                menu = _menu(menu_id, item["cat"], item["name"], item["price"])
+                updated.append(menu)
+                by_id[menu_id] = menu
+            menu.update({key: value for key, value in item.items() if key != "id"})
+        self.menus_ = updated
+        saved_ids = [item["id"] for item in items if item.get("delete") is not True]
+        return {"saved": len(saved_ids), "deleted": len(items) - len(saved_ids),
+                "menus": [dict(by_id[menu_id]) for menu_id in saved_ids]}
 
     def delete_menu(self, menu_id: str) -> None:
         self.menus_ = [m for m in self.menus_ if m["id"] != menu_id]
@@ -213,6 +251,17 @@ class DummyBackend:
                 "popular_menus": [{"name": n, "qty": q} for n, q in sorted(counts.items(), key=lambda kv: -kv[1])[:10]],
                 "ai": {"recommendations": shown, "ai_orders": ai, "hit_rate": round(ai / shown, 3),
                        "definition": "AI 조합이 포함된 주문 수 / 추천이 노출된 횟수 (임시 기준)"}}
+
+    def opportunities(self, round_no: int = 0) -> dict:
+        """서버가 없어도 기존 화면 규칙으로 같은 추천 응답 모양을 만든다."""
+        # 실행 시점에 가져와 admin_repository와의 순환 import를 피한다.
+        from admin.marketing.context import build_marketing_context
+        from admin.marketing.recommendations import pick_recommendations, recommend
+        from admin_repository import AdminRepository
+
+        cards, page, pages = pick_recommendations(
+            recommend(build_marketing_context(AdminRepository(self), self.customer_grade_rules())), round_no)
+        return {"items": cards, "page": page, "pages": pages}
 
     # ---- 문자 발송: 서버 SmsService 와 같은 규칙·같은 JSON 으로 흉내만 낸다 (실제 전송 없음) ----------------------
     SMS_LIMIT = {"SMS": 100, "LMS": 20}

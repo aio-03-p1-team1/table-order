@@ -1,16 +1,17 @@
 """주문·회원 원본 더미 (관리자 주문 목록, 주문 생성). (담당: 재현. members 는 통계 더미도 읽는다)"""
 
 from app.dummy._common import _ago
+from app.core.api_paths import ADMIN_API_PREFIX, API_PREFIX
 
 # 이 파일이 맡은 더미 엔드포인트. 실제 구현으로 바꾸면 해당 줄과 아래 함수를 같이 지운다.
 ENDPOINTS = {
-    "GET /admin/api/orders": "orders",
-    "POST /api/orders": "order_created",
+    f"GET {ADMIN_API_PREFIX}/orders": "orders",
+    f"POST {API_PREFIX}/orders": "order_created",
 }
 
 
 def members() -> list[dict]:
-    """주문·통계 더미가 쓰는 회원 원본 행. (GET /admin/api/members 는 문자 발송 대상 선택과 이어져 있어 더미가 아니라 DB 를 읽는다)"""
+    """주문·통계 더미가 쓰는 회원 원본 행. (GET /api/admin/members 는 문자 발송 대상 선택과 이어져 있어 더미가 아니라 DB 를 읽는다)"""
     def m(i, nick, gender, year, visits, last, consent=True, opted=False, phone="010-0000-0000"):
         return {"id": i, "kakao_id": f"dummy-{i}", "nickname": nick, "phone": phone, "gender": gender, "birthday": None,
                 "birth_year": year, "marketing_consent": consent, "opted_out": opted, "visit_count": visits,

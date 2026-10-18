@@ -5,8 +5,9 @@ from pydantic import BaseModel, Field
 
 from app import dummy
 from app.core.dependencies import optional_member
+from app.core.api_paths import API_PREFIX
 
-router = APIRouter(prefix="/api", tags=["사용자"])
+router = APIRouter(prefix=API_PREFIX, tags=["사용자"])
 
 
 

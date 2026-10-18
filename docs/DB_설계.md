@@ -110,61 +110,60 @@ login_sessions ─ members(로그인 완료 시)
 | `member_grade(...)` | 휴면(마지막 방문 N일 이상) → 단골 → 재방문 → 신규 순으로 판정. 기존 `grades.py`와 같은 규칙 |
 | `v_members_graded` | 회원 + 등급 + 문자 발송 가능 여부(동의·수신거부 아님·번호 있음). 기준은 `app_settings.grade_rule` |
 
-고객 등급 기준 저장(수용 5): 기존 `app_settings`의 `grade_rule` 한 행에 재방문·단골 방문 횟수와 휴면 일수를 저장하고 `updated_at`을 갱신한다. `GET·PUT /admin/api/customers/grades/rules`로 조회·저장하며, 고객 목록·통계·단골 추천·문자 대상은 저장된 기준을 함께 읽는다. 조회 우선순위는 **쿼리 미리보기 > DB 저장값 > 환경 변수 > 코드 기본값**이며 미리보기는 DB를 변경하지 않는다. 별도의 고객 등급 컬럼이나 테이블은 만들지 않는다. 로컬 SQLite의 `app_settings`는 `value`를 JSON 문자열로 저장하며, Supabase의 기존 `jsonb`와 같은 응답을 사용한다. 초기 조회·서버 시작은 기본값 행을 자동 저장하지 않는다.
+고객 등급 기준 저장(수용 5): 기존 `app_settings`의 `grade_rule` 한 행에 재방문·단골 방문 횟수와 휴면 일수를 저장하고 `updated_at`을 갱신한다. `GET·PUT /api/admin/customers/grades/rules`로 조회·저장하며, 고객 목록·통계·단골 추천·문자 대상은 저장된 기준을 함께 읽는다. 조회 우선순위는 **쿼리 미리보기 > DB 저장값 > 환경 변수 > 코드 기본값**이며 미리보기는 DB를 변경하지 않는다. 별도의 고객 등급 컬럼이나 테이블은 만들지 않는다. 로컬 SQLite의 `app_settings`는 `value`를 JSON 문자열로 저장하며, Supabase의 기존 `jsonb`와 같은 응답을 사용한다. 초기 조회·서버 시작은 기본값 행을 자동 저장하지 않는다.
 
 휴면 **기본값은 30일**로 통일했다(관리자가 저장한 사용자 지정 일수는 유지). 기존 DB에는 [`sooyong_grade_rules_30_days.sql`](db/sooyong_grade_rules_30_days.sql)을 적용해 함수·뷰의 기본값과 과거 시드 `2회·5회·60일`만 수정한다. 회원·주문 데이터는 삭제하지 않는다. 팀 공유 사항: 문자 발송 담당도 같은 저장 기준을 사용하며, `grade_rule()`의 기존 인자·반환 필드는 유지하고 DB 연결만 선택 인자로 추가했다.
 | `v_sms_usage` | 월·종류별 사용량(발송·테스트·예약만 집계, 취소·실패 제외) |
 
-## API v6 ↔ 테이블 대응
+## API ↔ 테이블 대응
 
-API 화면 구분은 v6 목록표의 번호(1-1 … 2-10)입니다. "집계"는 별도 테이블 없이 `orders`·`members` 등에서 SQL로 계산한다는 뜻입니다.
+경로는 현재 등록된 라우트를 기준으로 합니다. 테이블 열은 해당 기능의 DB 설계상 저장 위치이며, 더미 응답인 API는 아직 이 테이블에 저장하지 않을 수 있습니다. 실제 구현 상태는 라우터와 담당 TODO에서 확인합니다. "집계"는 별도 테이블 없이 주문·회원 데이터로 계산한다는 뜻입니다.
 
 ### 손님 페이지
 
-| v6 구분 | API | 테이블 |
+| 기능 | API | 테이블 |
 |---|---|---|
-| 1-1 스플래시 | `GET /v1/store` | `store_info` |
-| | `GET /v1/roulette/prizes` | `roulette_prizes` |
-| | `GET /v1/roulette/status`, `POST /v1/roulette/plays` | `table_logins`, `roulette_prizes` (당첨 시 `coupons`에 쿠폰 발급) |
-| | `GET /v1/coupons`, `GET /tables/{n}/coupons` (쿠폰함 조회. v6 목록표에 없던 API) | `coupons` |
-| | `POST /v1/auth/qr`, `GET /v1/auth/qr/{secret}` | `login_sessions` |
-| | `GET /v1/auth/kakao/start·continue·callback` | `login_sessions`, `members` (`visit_count` +1) |
-| | `GET /v1/members/me` | `members` |
-| 1-2 주문 | `GET /v1/categories`, `GET /v1/menus` | `categories`, `menus` |
-| | `POST /v1/orders` | `orders`, `order_items`, `order_item_components` (요청의 `coupon_ids`는 `coupons.used_at`·`used_order_id`로 기록) |
-| 1-3 주문내역 | `GET /v1/tables/{tableId}/orders` | `orders`, `order_items` |
-| 1-4 직원 호출 | `GET /v1/staff-call-items`, `POST /v1/staff-calls` | `staff_call_items`, `staff_calls` |
-| 1-5 AI 추천 | `GET /v1/ai/questions` | `quiz_questions`, `quiz_options` |
-| | `POST /v1/ai/recommendations` | `recommendation_events` (+ `recommendation_rules`, `weather_current`) |
-| | `GET /v1/weather/current` | `weather_current`, `weather_types` |
-| | `GET /v1/ai/recommendation-rules` | `recommendation_rules` |
-| | `GET /v1/ai/preferences/me` | 전용 테이블 없음. `recommendation_events`·`orders` 집계 |
-| | `…/recommendations/{id}/alternatives`, `…/feedback` | 전용 테이블 없음(feedback은 필요 시 `recommendation_events` 컬럼 추가) |
+| 매장 | `GET /api/store` | `store_info` |
+| 룰렛 칸 | `GET /api/roulette/prizes` | `roulette_prizes` |
+| 로그인 회원·룰렛 사용 여부 | `GET /api/tables/{table_no}/logins` | `table_logins`, `members`, `coupons` |
+| 룰렛 당첨 | `PUT /api/tables/{table_no}/logins/prize` | `table_logins`, `roulette_prizes`, `coupons` |
+| 쿠폰함 | `GET /api/coupons`, `GET /api/tables/{table_no}/coupons` | `coupons` |
+| QR 로그인 | `POST /api/auth/qr`, `GET /api/auth/qr/{secret}` | `login_sessions` (현재 서버 메모리) |
+| 카카오 로그인 | `GET /api/auth/kakao/start`, `GET /api/auth/kakao/continue`, `GET /api/auth/kakao/callback` | `login_sessions`, `members` |
+| 회원 | `GET /api/members/me`, `POST /api/members/me/opt-out` | `members` |
+| 메뉴·카테고리 | `GET /api/categories`, `GET /api/menus` | `categories`, `menus` |
+| 주문 | `POST /api/orders` | `orders`, `order_items`, `order_item_components`, `coupons` |
+| 직원 호출 항목 | `GET /api/content/staff_calls` | `staff_call_items` (현재 콘텐츠 더미) |
+| 직원 호출 등록 | `POST /api/calls` | `staff_calls` |
+| AI 질문 | `GET /api/content/quiz_questions` | `quiz_questions`, `quiz_options` (현재 콘텐츠 더미) |
+| AI 추천 노출 | `POST /api/recommendations` | `recommendation_events` |
+| 날씨 | `GET /api/content/weather` | `weather_current`, `weather_types` (현재 콘텐츠 더미) |
+| 추천 규칙 | `GET /api/content/rules` | `recommendation_rules` (현재 콘텐츠 더미) |
 
 ### 관리자 페이지
 
-| v6 구분 | API | 테이블 |
+| 기능 | API | 테이블 |
 |---|---|---|
-| 2-1 로그인 | `GET /v1/owner/me` | `owners`, `store_info` (후순위) |
-| 2-2 대시보드 | `GET /admin/stats/*` (sales, hourly, trends, weekday, tables, tickets, customers, menus/ranking) | 집계: `orders`, `order_items`, `order_item_components`, `members` |
-| | `GET /admin/stats/ai-recommendations` | 집계: `recommendation_events`, `orders` |
-| | `GET /admin/customers/grades` | `v_members_graded` |
-| | `GET /admin/alerts`, `PATCH /admin/alerts/{id}` | `alerts` |
-| 2-3 메뉴 관리 | `GET·POST·PATCH·DELETE /v1/owner/menus…` | `menus` |
-| | `POST·PATCH·DELETE /v1/owner/categories…` | `categories` |
-| 2-4 추천 가중치 | `PATCH /v1/owner/menus/weights`, 단건 PATCH | `menus.weight` |
-| 2-5 이벤트 | `GET /v1/roulette/prizes`, `PUT /v1/owner/roulette/prizes` | `roulette_prizes` |
-| 2-6 고객 등급 | `GET /admin/customers`, `…/grades/rules` | `v_members_graded`, `app_settings.grade_rule` |
-| 2-7 주문 이력 | `GET /v1/owner/orders` | `orders`, `order_items`, `members` |
-| 2-9 AI 문자 | `sms/usage` | `v_sms_usage`, `app_settings.sms_limits` |
-| | `sms/preview`, `sms/candidates` | `v_members_graded`, `external_context` |
-| | `sms/send`, `sms/logs`, `sms/logs/{id}/cancel` | `sms_logs`, `sms_log_recipients` |
-| | `POST /admin/customers/{id}/opt-out` | `members.opted_out` |
-| | `GET /admin/marketing/external-context` | `external_context` |
-| 2-10 챗봇·추천 | `chat/sessions` 5개 | `chat_sessions`, `chat_messages` |
-| | `GET /admin/marketing/opportunities` | 전용 테이블 없음. 집계 + 서버 로직 |
+| 기본 통계 | `GET /api/admin/stats`, `GET /api/admin/stats/sales`, `GET /api/admin/stats/menus/ranking`, `GET /api/admin/stats/customers` | 집계: `orders`, `order_items`, `order_item_components`, `members` |
+| AI 통계 | `GET /api/admin/stats/ai-recommendations` | 집계: `recommendation_events`, `orders` |
+| 추가 통계 | `GET /api/admin/stats/insights`, `GET /api/admin/stats/sales/hourly`, `GET /api/admin/stats/sales/weekday`, `GET /api/admin/stats/sales/trends`, `GET /api/admin/stats/sales/tickets`, `GET /api/admin/stats/tables` | 주문·회원 집계 |
+| 등급 집계 | `GET /api/admin/customers/grades` | `members`의 방문 기록과 등급 기준 |
+| 품절 알림 | `GET /api/admin/alerts` | `menus`, `orders`, `order_items` 집계 |
+| 메뉴 관리 | `GET /api/admin/menus`, `PUT·DELETE /api/admin/menus/{menu_id}` | `menus`, `categories` |
+| 카테고리 관리 | `GET·POST /api/admin/categories`, `PATCH·DELETE /api/admin/categories/{category_id}` | `categories` |
+| 추천 가중치 | `PUT /api/admin/menus/{menu_id}` | `menus.weight` |
+| 룰렛 설정 | `PUT /api/admin/owner/roulette/prizes` | `roulette_prizes` |
+| 고객 목록 | `GET /api/admin/customers`, `GET /api/admin/members` | `members` |
+| 등급 기준 | `GET·PUT /api/admin/customers/grades/rules` | `app_settings.grade_rule` |
+| 주문 이력 | `GET /api/admin/orders` | `orders`, `order_items`, `members` |
+| 문자 사용량 | `GET /api/admin/marketing/sms/usage` | `sms_logs`, `app_settings.sms_limits` |
+| 문자 미리보기·후보 | `POST /api/admin/marketing/sms/preview`, `POST /api/admin/marketing/sms/candidates` | `members`, `external_context` |
+| 문자 발송·기록 | `POST /api/admin/marketing/sms/send`, `GET /api/admin/marketing/sms/logs`, `POST /api/admin/marketing/sms/logs/{log_id}/cancel` | `sms_logs`, `sms_log_recipients` |
+| 문자 수신거부 | `POST /api/admin/customers/{member_id}/opt-out`, `POST /api/admin/members/{member_id}/opt-out` | `members.opted_out` |
+| 외부 정보 | `GET /api/admin/marketing/external-context` | `external_context` |
+| 단골 선호 안주 | `GET /api/admin/marketing/regular-preferences` | `members`, `orders`, `order_items`, `menus` |
 
-v6에서 "뺄" 처리된 API(`orders/{orderId}`, 메뉴군·날씨별 매출 등 5개 통계)는 테이블을 따로 만들지 않았습니다.
+테이블 누적 주문, 관리자 전용 로그인, 챗봇 대화 저장, 마케팅 추천 카드, 관리자 직원 호출 관리는 아직 미등록입니다. 관련 테이블 설계와 구현 요구사항은 유지하며 경로는 구현 시 정합니다.
 
 ## 현재 DB와 달라진 점
 

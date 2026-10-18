@@ -21,7 +21,7 @@
 | 0 | 0. 개발 흐름 확인 (테스트 버튼) | `POST /api/dev/db-test` (개발 전용) | 확인 전 |
 | 1 | 1. QR 로그인 · 2. 문자 발송 점검 | 구현됨 | 새 코드 없이 동작 확인만 |
 | 2 | 3. AI 문자 후보 · 외부 정보(날씨·행사) | 완료 | 날씨는 `B/services/external_info.py`(Open-Meteo)에서 직접 가져옴. 재현의 `weather.py`가 생기면 그쪽으로 바꿀 수 있음 |
-| 3 | 4. AI 챗봇 | 미구현 | 수용의 `B/services/stats.py`를 호출해 매출을 답함 |
+| 3 | 4. AI 챗봇 | 완료 | 기간별 매출·인기 메뉴·회원 수를 서버가 계산해 프롬프트에 붙여 제미나이가 답함(MCP·RAG 없음). 실제 Supabase에서는 `CHAT_OWNER_ID` 필요 |
 | 4 | 5. 관리자 로그인 | 미구현 | **모든 개발이 끝난 뒤 마지막에** (AGENTS.md 규칙) |
 | 선작업 | `B/dummy/`·`B/routers/` 분리 PR | 완료(PR 머지 후 시작) | `dummy.py`는 `B/dummy/*_data.py`로, `user.py`는 기능별 라우터로 나뉨. 마케팅 화면(`marketing*.py`)과 `admin_repository.py` 분리는 하지 않음 |
 
@@ -115,7 +115,7 @@
 **흐름**
 ```
 UI(AI 문자 탭 · 발송 버튼) → A/views/marketing.py → A/admin_repository.py ApiBackend.sms_send
- → POST /admin/api/marketing/sms/send → B/routers/admin/sms.py → B/services/sms.py
+ → POST /api/admin/marketing/sms/send → B/routers/admin/sms.py → B/services/sms.py
    (수신 동의·수신거부 필터, (광고) 문구 붙이기, SMS/LMS 판별, 월 한도 검사)
  → 솔라피 API(dry-run 이면 건너뜀) → B/stores/sms_logs.py → DB(sms_logs, sms_log_recipients)
  → 결과(status, 대상 수) → UI "발송 완료" + 발송 내역 표
@@ -156,7 +156,7 @@ UI(AI 문자 탭 · 발송 버튼) → A/views/marketing.py → A/admin_reposito
 **흐름**
 ```
 UI(AI 문구 생성 버튼) → A/views/marketing.py make_ai_candidates → repo.sms_candidates (새 메서드)
- → POST /admin/api/marketing/sms/candidates → B/routers/admin/sms.py
+ → POST /api/admin/marketing/sms/candidates → B/routers/admin/sms.py
  → B/services/sms_candidates.py (신규: 회원·주문·메뉴 요약 수집 → 키워드 조합 → 문구 생성)
  → [DB(members, orders, menus) 읽기] + external-context 읽기 → DB(external_context) → LLM(키 없으면 템플릿)
  → 후보 목록 → UI 후보 카드
@@ -166,16 +166,16 @@ UI(AI 문구 생성 버튼) → A/views/marketing.py make_ai_candidates → repo
 
 - [x] `B/services/sms_candidates.py`(신규)에 `A/marketing_ai.py`의 `keyword_combos`, `template_sms`, `generate_sms`, `suggest_candidates` 로직을 서버용으로 옮긴다. 화면쪽 원본은 지우지 말고 둔다(`DATA_SOURCE=dummy` 대체용).
 - [x] 회원·주문 요약은 직접 SQL을 쓰지 말고 `B/stores/members.py` 등 기존 store 메서드를 쓴다. 필요한 조회가 없으면 본인이 만든 새 store 파일에 추가한다.
-- [x] `B/routers/admin/external.py`(신규): `GET /admin/api/marketing/external-context` → 오늘(KST) 행 조회, 없으면 날씨는 재현의 `B/services/weather.py`로 채워 `external_context`에 저장. 행사 문구는 비워 두고 사장님이 입력하는 방식은 추후 결정.
+- [x] `B/routers/admin/external.py`(신규): `GET /api/admin/marketing/external-context` → 오늘(KST) 행 조회, 없으면 날씨는 재현의 `B/services/weather.py`로 채워 `external_context`에 저장. 행사 문구는 비워 두고 사장님이 입력하는 방식은 추후 결정.
 - [x] 결정(구현은 제미나이로 진행, 팀 확인 필요): 현재 문구 생성은 Anthropic API(`ANTHROPIC_API_KEY`)를 쓰고, 챗봇은 제미나이로 정해져 있다. 문자 후보도 제미나이로 통일할지 결정한다.
 - [x] `A/admin_repository.py`의 `ApiBackend`에 `sms_candidates` 메서드를 추가했다(`external_context`는 서버가 후보 생성 때 직접 쓰므로 화면 메서드는 만들지 않음).
 - 구현 메모: 행사는 서울시 문화행사 정보 API(`SEOUL_OPENAPI_KEY`, 마포구·오늘 진행 중 최대 2개), 문구 생성은 제미나이(`GEMINI_API_KEY`, 없으면 템플릿). 메뉴·주문 저장소가 아직 뼈대라 인기·가중치 메뉴는 그 저장소가 구현되면 자동 반영된다.
 
 ---
 
-## 4. AI 챗봇 (미구현)
+## 4. AI 챗봇
 
-### 4-1. `POST·GET /api/admin/marketing/chat/sessions` · `GET·DELETE …/sessions/{sessionId}` · `POST …/sessions/{sessionId}/messages`
+### 4-1. 챗봇 대화 세션·메시지 관리 (API 미등록)
 
 **현재 상태**: 대화가 `st.session_state`(브라우저 메모리)에만 있고, 답변은 규칙 기반 가짜 응답(`RuleBasedClient`)이다. 새로고침하면 대화가 사라진다. 더미 서버 코드는 없다.
 
@@ -202,7 +202,7 @@ UI(AI 문구 생성 버튼) → A/views/marketing.py make_ai_candidates → repo
 **흐름**
 ```
 UI(챗봇 탭 · 질문 입력) → A/views/marketing.py marketing_chatbot_tab → repo.chat_send (새 메서드)
- → POST /admin/api/marketing/chat/sessions/{id}/messages → B/routers/admin/chat.py (신규)
+ → 챗봇 대화 API(미등록) → B/routers/admin/chat.py (신규)
  → B/services/chat.py (신규): 대화 이력 읽기 + 매출·메뉴·고객 요약 만들기(수용의 stats 서비스 호출)
  → 제미나이 API → 답변 → B/stores/chat.py (신규): user·assistant 메시지 저장 → DB(chat_sessions, chat_messages)
  → 답변 → UI 말풍선
@@ -210,29 +210,29 @@ UI(챗봇 탭 · 질문 입력) → A/views/marketing.py marketing_chatbot_tab �
 
 **상세 설명 / TODO**
 
-- [ ] `B/core/settings.py`에 `gemini_api_key`와 `chat_owner_id`(임시 owner uuid) 추가, `backend/.env.example`에 `GEMINI_API_KEY=`, `CHAT_OWNER_ID=` 두 줄 추가.
-- [ ] `B/stores/chat.py`(신규): `create_session`, `list_sessions`, `get_session(메시지 포함)`, `add_message`, `delete_session`. 테이블은 `chat_sessions`, `chat_messages`.
-- [ ] **임시 owner (결정됨)**: `chat_sessions.owner_id`는 `auth.users`를 참조하는 NOT NULL이고 관리자 인증은 마지막(5번)에 하므로, 개발 중에는 Supabase `auth.users`에 이미 있는 계정 1개의 uuid를 `CHAT_OWNER_ID` 환경변수로 받아 모든 세션의 owner로 쓴다.
+- [x] `B/core/settings.py`에 `gemini_api_key`와 `chat_owner_id`(임시 owner uuid) 추가, `backend/.env.example`에 `GEMINI_API_KEY=`, `CHAT_OWNER_ID=` 두 줄 추가.
+- [x] `B/stores/chat.py`(신규): `create_session`, `list_sessions`, `get_session(메시지 포함)`, `add_message`, `delete_session`. 테이블은 `chat_sessions`, `chat_messages`.
+- [x] **임시 owner (결정됨)**: `chat_sessions.owner_id`는 `auth.users`를 참조하는 NOT NULL이고 관리자 인증은 마지막(5번)에 하므로, 개발 중에는 Supabase `auth.users`에 이미 있는 계정 1개의 uuid를 `CHAT_OWNER_ID` 환경변수로 받아 모든 세션의 owner로 쓴다.
   - uuid는 Supabase 대시보드 Authentication > Users에서 복사해 각자 `backend/.env`에만 넣는다(코드·커밋·화면·로그에 쓰지 않는다. DB 스키마는 바꾸지 않는다).
   - `B/stores/chat.py`의 `create_session`이 `settings.chat_owner_id`를 `owner_id`로 넣는다. 값이 비어 있으면 세션 생성은 "CHAT_OWNER_ID 설정이 필요합니다"라는 오류로 돌려주고 500을 내지 않는다.
   - 로컬 SQLite로 개발할 때는 `auth.users` FK가 없으므로 아무 uuid 문자열이어도 동작한다. Supabase에서는 실제 존재하는 uuid여야 한다.
   - `chat_sessions.id`는 uuid라 `SERIAL_TABLES`에 없다. `uuid.uuid4()`로 코드에서 만들어 넣고 그 값을 반환한다(`chat_messages`는 이미 `SERIAL_TABLES`에 들어 있음).
   - 5번(관리자 로그인)을 할 때 `require_admin`이 돌려주는 사용자 id로 교체하고 `CHAT_OWNER_ID`는 제거한다.
-- [ ] `B/routers/admin/chat.py`(신규) 5개 엔드포인트. 없는 세션이면 404.
-- [ ] `B/services/chat.py`(신규): 오늘 매출 등은 `B/services/stats.py`(수용)의 함수를 **호출만** 한다. 수용이 구현하기 전에는 주문 합계를 직접 간단히 계산하지 말고, 해당 요약 항목은 "아직 집계 전"으로 두고 진행한다.
-- [ ] 제미나이 호출은 `httpx`(이미 사용 중)로 하고 타임아웃(15초)과 예외 처리를 넣는다. 실패 시 "답변을 만들지 못했어요" 메시지를 저장하지 말고 오류로 돌려준다.
-- [ ] `A/views/marketing.py`의 `marketing_chatbot_tab`만 수정한다(같은 파일의 AI 추천 탭은 석원 담당). `A/admin_repository.py`의 `ApiBackend`에는 `chat_*` 메서드를 본인 구역에 추가.
-- [ ] 완료 후: 규칙 기반 `RuleBasedClient`는 `DATA_SOURCE=dummy` 대체용으로 남겨 둔다.
+- [x] `B/routers/admin/chat.py`(신규) 5개 엔드포인트. 없는 세션이면 404.
+- [x] `B/services/chat.py`(신규): 오늘 매출 등은 `B/services/stats.py`(수용)의 함수를 **호출만** 한다. 수용이 구현하기 전에는 주문 합계를 직접 간단히 계산하지 말고, 해당 요약 항목은 "아직 집계 전"으로 두고 진행한다.
+- [x] 제미나이 호출은 `httpx`(이미 사용 중)로 하고 타임아웃(15초)과 예외 처리를 넣는다. 실패 시 "답변을 만들지 못했어요" 메시지를 저장하지 말고 오류로 돌려준다.
+- [x] `A/views/marketing.py`의 `marketing_chatbot_tab`만 수정한다(같은 파일의 AI 추천 탭은 석원 담당). `A/admin_repository.py`의 `ApiBackend`에는 `chat_*` 메서드를 본인 구역에 추가.
+- [x] 완료 후: 규칙 기반 `RuleBasedClient`는 `DATA_SOURCE=dummy` 대체용으로 남겨 둔다.
 
 ---
 
 ## 5. 관리자 로그인 (미구현 · 마지막에 진행)
 
-### 5-1. `GET /api/v1/owner/me`
+### 5-1. 관리자 전용 로그인 (API 미등록)
 
 **현재 상태**: `ADMIN_TOKEN` 하나로 모든 관리자 API를 보호한다 (`B/core/dependencies.py require_admin`). 화면은 `ADMIN_SKIP_TOKEN=1`이면 토큰 입력 없이 자동 로그인한다. 정식 인증은 **모든 기능 개발이 끝난 뒤** Supabase Auth(`owners` 테이블)로 바꾼다.
 
-**목표**: 사장님 계정으로 로그인하면 `owner/me`가 토큰을 검증하고 매장 정보를 돌려준다. 계정이 `owners`에 없으면 403.
+**목표**: 사장님 계정으로 로그인하면 전용 API가 토큰을 검증하고 매장 정보를 돌려준다. 계정이 `owners`에 없으면 403. API 경로는 구현 시 정한다.
 
 **테스트 방법**
 
@@ -254,7 +254,7 @@ UI(챗봇 탭 · 질문 입력) → A/views/marketing.py marketing_chatbot_tab �
 **흐름**
 ```
 UI(관리자 로그인 화면) → A/views/login.py → A/admin_repository.py connect
- → (현재) GET /admin/api/menus 로 토큰 확인 → (변경) GET /api/v1/owner/me
+ → (현재) GET /api/admin/menus 로 토큰 확인 → (변경) 관리자 전용 로그인 API(미등록)
  → B/core/dependencies.py require_admin (Supabase JWT 검증) → B/services/supabase_auth.py
  → DB(owners 에 user_id 있는지) → 매장 정보(B/stores/store_info.py) → UI 메뉴 화면
 ```

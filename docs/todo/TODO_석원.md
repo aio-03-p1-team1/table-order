@@ -19,9 +19,9 @@
 | 순서 | 할 일 | API | 상태 |
 |---|---|---|---|
 | 0 | 0. 개발 흐름 확인 (테스트 버튼) | `POST /api/dev/db-test` (개발 전용) | 확인 전 |
-| 1 | 1. 직원 호출 (손님 호출 → 관리자 확인) | `POST /api/v1/staff-calls`, `GET /api/v1/staff-call-items`, `GET /api/admin/calls`, `POST /api/admin/calls/{callId}/done` | 더미 |
-| 2 | 2. 룰렛 설정 | `GET /api/v1/roulette/prizes`, `PUT /api/v1/owner/roulette/prizes` | 완료 |
-| 3 | 3. 관리자 AI 추천 | `GET /api/admin/marketing/opportunities?round=` | 미구현 |
+| 1 | 1. 직원 호출 (손님 호출 → 관리자 확인) | `POST /api/calls`, `GET /api/content/staff_calls` · 관리자 API 미등록 | 더미 |
+| 2 | 2. 룰렛 설정 | `GET /api/roulette/prizes`, `PUT /api/admin/owner/roulette/prizes` | 완료 |
+| 3 | 3. 관리자 AI 추천 | `마케팅 추천 카드 API(미등록)` | 미구현 |
 
 **다른 팀원과 겹치는 지점**
 
@@ -60,9 +60,9 @@
 
 ## 1. 직원 호출 (더미)
 
-손님이 "물·수저 주세요"를 누르면 → 관리자가 목록에서 보고 → 처리 완료를 누르는 한 줄기 흐름이다. 4개 API가 모두 `staff_calls`·`staff_call_items` 두 테이블(`B/stores/shop_calls.py`)을 쓴다.
+손님이 "물·수저 주세요"를 누르면 → 관리자가 목록에서 보고 → 처리 완료를 누르는 흐름이 목표다. 손님 요청 항목·호출 등록 경로는 등록되어 있고 관리자 목록·완료 처리 API는 미등록이다. DB 구현은 `staff_calls`·`staff_call_items` 두 테이블(`B/stores/shop_calls.py`)을 사용한다.
 
-### 1-1. `GET /api/v1/staff-call-items` (요청 항목 목록)
+### 1-1. `GET /api/content/staff_calls` (요청 항목 목록)
 
 **목표**: 직원 호출 창에 보이는 항목(💧 물, 🥄 수저 등)을 DB `staff_call_items`에서 읽는다. 지금은 `GET /api/content`의 `staff_calls`(JSON 파일)에서 나온다.
 
@@ -73,17 +73,17 @@
 **흐름**
 ```
 UI(직원 호출 다이얼로그 열기) → U/ui/dialogs.py staff_dialog ← ctx.STAFF_CALLS ← U/user_repository.py load_content
- → GET /api/v1/staff-call-items → B/routers/staff_calls.py(신규) → B/stores/shop_calls.py items()
+ → GET /api/content/staff_calls → B/routers/content.py content_item → (구현 목표) B/stores/shop_calls.py items()
  → DB(staff_call_items) → ["💧 물", "🥄 수저", …] → UI 체크 항목
 ```
 
 **상세 설명 / TODO**
 
-- [ ] 더미 주석처리: `B/seed/content.json`의 `staff_calls` 키는 `/api/content`로 나오므로 새 API로 옮긴 뒤 **그 키만** 지운다. `B/dummy/content_data.py`의 `content_saved`·`"PUT /admin/api/content/{name}"` 줄은 2번(룰렛 저장)과 같이 쓰이므로 둘 다 옮긴 뒤 정리(서준이 마지막 확인).
+- [ ] 더미 주석처리: `B/seed/content.json`의 `staff_calls` 키는 `/api/content`로 나오므로 새 API로 옮긴 뒤 **그 키만** 지운다. `B/dummy/content_data.py`의 `content_saved`·`"PUT /api/admin/content/{name}"` 줄은 2번(룰렛 저장)과 같이 쓰이므로 둘 다 옮긴 뒤 정리(서준이 마지막 확인).
 - [ ] `shop_calls.py`에 `items()`(목록)와 비어 있을 때 시드 채우기 추가.
 - [ ] `U/user_repository.py _fetch_content`에서 `staff_calls`를 새 경로로 받도록 **그 줄만** 수정.
 
-### 1-2. `POST /api/v1/staff-calls` (직원 호출 등록)
+### 1-2. `POST /api/calls` (직원 호출 등록)
 
 **목표**: 손님이 고른 항목들(복수)로 호출을 `staff_calls`에 저장한다. 지금은 저장하지 않는 더미다(`POST /api/calls`).
 
@@ -103,11 +103,11 @@ UI(직원 호출 · 항목 선택 · 호출 버튼) → U/ui/dialogs.py staff_di
 
 - [ ] 더미 주석처리: `create_call`의 `dummy.call_created()` 줄, `B/dummy/call_data.py`의 `call_created`와 `"POST /api/calls"` 줄.
 - [ ] `shop_calls.py`의 `add_call`, `call` 구현(파일 안 TODO 그대로).
-- [ ] 문서 경로 `POST /api/v1/staff-calls`는 같은 함수를 부르는 별칭으로 추가. 기존 `/api/calls`는 유지(화면이 사용 중).
+- [ ] 손님 호출 등록은 `POST /api/calls`를 사용하고 화면의 호출 경로를 확인한다.
 
-### 1-3. `GET /api/admin/calls`, `POST /api/admin/calls/{callId}/done` (관리자 호출 관리)
+### 1-3. 관리자 호출 목록·완료 처리 (API 미등록)
 
-**목표**: 관리자가 호출 목록(최신순, 처리 여부)을 보고 "처리 완료"를 누르면 `done_at`을 기록한다. **관리자 화면이 아직 없다**(과거 삭제됨) — 화면 추가도 이 작업에 포함된다.
+**목표**: 관리자가 호출 목록(최신순, 처리 여부)을 보고 "처리 완료"를 누르면 `done_at`을 기록한다. 현재 화면은 `A/views/calls.py`에 있으며, 서버 목록·완료 처리 API 연결이 필요하다.
 
 **테스트 방법**: 새 테스트 — 호출 3건 등록 → 목록이 최신순 / `done` 호출 후 해당 건만 `done=true` / 없는 id는 404 / 이미 처리된 건을 다시 처리해도 오류 없음(멱등) / 인증 없으면 401. 화면: 새 `tests/test_admin_calls_page.py`(AppTest)로 목록이 그려지는지만 확인.
 
@@ -116,7 +116,7 @@ UI(직원 호출 · 항목 선택 · 호출 버튼) → U/ui/dialogs.py staff_di
 **흐름**
 ```
 UI(관리자 > 직원 호출 관리 · 처리 완료 버튼) → A/views/calls.py(신규) → repo.calls / repo.call_done (A/admin_repository.py)
- → GET /admin/api/calls · POST /admin/api/calls/{id}/done → B/routers/admin/calls.py(신규)
+ → 관리자 직원 호출 API(미등록) → B/routers/admin/calls.py
  → B/stores/shop_calls.py list_calls / mark_done → DB(staff_calls UPDATE done_at)
  → [{id, table_no, items, ts, done}] → UI 호출 카드(미처리 먼저)
 ```
@@ -129,11 +129,11 @@ UI(관리자 > 직원 호출 관리 · 처리 완료 버튼) → A/views/calls.p
 
 ---
 
-## 2. 룰렛 설정 (더미)
+## 2. 룰렛 설정 (DB 연동)
 
-### 2-1. `GET /api/v1/roulette/prizes`, `PUT /api/v1/owner/roulette/prizes`
+### 2-1. `GET /api/roulette/prizes`, `PUT /api/admin/owner/roulette/prizes`
 
-**현재 상태**: 룰렛 칸 구성은 `/api/content`의 `roulette_prizes`(JSON 파일)에서 나오고, 관리자 저장(`PUT /admin/api/content/roulette_prizes`)은 저장하지 않는 더미다. 검증(칸 2~8개, 가중치 합 0 초과, 색상 형식, 할인율 1~100)은 이미 **화면 쪽**(`A/admin_repository.py save_roulette`)에 있다.
+**현재 상태**: 룰렛 칸 구성은 `GET /api/roulette/prizes`로 DB에서 조회하고, 관리자 저장은 `PUT /api/admin/owner/roulette/prizes`를 사용한다. 칸 2~8개, 가중치 합 0 초과, 색상 형식, 할인율 1~100 등을 서버와 화면에서 검증한다.
 
 **목표**: 칸 구성·확률 가중치를 `roulette_prizes` 테이블에 저장하고 읽는다. 저장은 목록 통째로 교체(칸 순서 유지). 손님 화면의 룰렛과 재현의 서버 추첨이 같은 데이터를 쓴다.
 
@@ -160,16 +160,16 @@ UI(관리자 > 직원 호출 관리 · 처리 완료 버튼) → A/views/calls.p
 **흐름**
 ```
 UI(관리자 > 이벤트 > 룰렛 · 칸 편집 · 저장) → A/views/events.py → repo.save_roulette (검증·변환)
- → PUT /admin/api/…/roulette/prizes [{label, short, emoji, color, kind, percent|item_id, weight}]
- → B/routers/roulette_prizes.py(신규) (서버 검증) → B/stores/roulette_prizes.py(신규) 통째 교체
+ → PUT /api/admin/owner/roulette/prizes [{label, short, emoji, color, kind, percent|item_id, weight}]
+ → B/routers/admin/owner.py (서버 검증) → B/stores/roulette_prizes.py 통째 교체
  → DB(roulette_prizes, menus 참조) → 저장된 목록
- → (손님) GET /api/v1/roulette/prizes → U/user_repository.py → U/ui/roulette.py 가 같은 칸으로 룰렛을 그림
+ → (손님) GET /api/roulette/prizes → U/user_repository.py → U/ui/roulette.py 가 같은 칸으로 룰렛을 그림
 ```
 
 **상세 설명 / TODO**
 
 - [x] `B/stores/roulette_prizes.py`(신규): `list()`(`sort_order` 순, 화면 모양으로 변환: `short_text→short`, `menu_id→item_id`), `replace(prizes)`, 비어 있을 때 전용 시드의 룰렛 설정으로 초기화.
-- [x] `B/routers/roulette_prizes.py`(신규): 손님용 `GET /api/v1/roulette/prizes`, 관리자용 `PUT /admin/api/owner/roulette/prizes`(인증 필요). 서버 검증은 `save_roulette`와 같은 규칙.
+- [x] `B/routers/roulette_prizes.py`: 손님용 `GET /api/roulette/prizes`. `B/routers/admin/owner.py`: 관리자용 `PUT /api/admin/owner/roulette/prizes`(인증 필요). 서버 검증은 `save_roulette`와 같은 규칙.
 - [x] 더미 정리: `B/seed/content.json`의 `roulette_prizes` 키를 전용 시드로 옮겼다. 공용 콘텐츠 저장 엔드포인트는 직원 호출·카테고리 이관 뒤 정리한다.
 - [x] `A/admin_repository.py`: `ENDPOINTS["roulette"]`와 `ApiBackend.roulette_prizes`/`save_roulette_prizes`의 경로를 새 경로로 변경.
 - [x] `U/user_repository.py _fetch_content`의 `roulette_prizes`를 새 경로로 받도록 수정.
@@ -179,7 +179,7 @@ UI(관리자 > 이벤트 > 룰렛 · 칸 편집 · 저장) → A/views/events.py
 
 ## 3. 관리자 AI 추천 (미구현)
 
-### 3-1. `GET /api/admin/marketing/opportunities?round=`
+### 3-1. `마케팅 추천 카드 API(미등록)`
 
 **현재 상태**: "사장님을 위한 마케팅 추천" 카드는 서버가 아니라 **관리자 화면 안**에서 만든다(`A/marketing_ai.py build_context` → `recommend`). 규칙 기반이고 LLM은 쓰지 않는다. 서버 코드와 더미 서버 코드는 없다.
 
@@ -206,7 +206,7 @@ UI(관리자 > 이벤트 > 룰렛 · 칸 편집 · 저장) → A/views/events.py
 **흐름**
 ```
 UI(마케팅 > AI 추천 탭 · 🔄 재추천) → A/views/marketing.py marketing_recommend_tab → next_rec_round(round+1)
- → repo.opportunities(round) (새 메서드, A/admin_repository.py) → GET /admin/api/marketing/opportunities?round=N
+ → repo.opportunities(round) (새 메서드, A/admin_repository.py) → 마케팅 추천 카드 API(미등록)
  → B/routers/admin/opportunities.py(신규) → B/services/opportunities.py(신규): 맥락 수집 → 규칙 평가 → 카드 목록 → 4개 묶음 선택
  → [DB(members, orders, menus, recommendation_events) 읽기: 각 store 와 수용의 stats 서비스 호출]
  → {items:[{title, why, action}], page, pages} → UI 카드 4개 + "추천 N/M"

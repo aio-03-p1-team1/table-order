@@ -1,12 +1,13 @@
 """쿠폰함·룰렛 당첨 더미. (담당: 재현)"""
 
 from app.dummy._common import _ago
+from app.core.api_paths import API_PREFIX
 
 # 이 파일이 맡은 더미 엔드포인트. 실제 구현으로 바꾸면 해당 줄과 아래 함수를 같이 지운다.
 ENDPOINTS = {
-    "GET /api/v1/coupons, /api/coupons": "member_coupons",
-    "GET /api/tables/{table_no}/coupons": "table_coupons",
-    "PUT /api/tables/{table_no}/logins/prize": "prize_saved",
+    f"GET {API_PREFIX}/coupons": "member_coupons",
+    f"GET {API_PREFIX}/tables/{{table_no}}/coupons": "table_coupons",
+    f"PUT {API_PREFIX}/tables/{{table_no}}/logins/prize": "prize_saved",
 }
 
 

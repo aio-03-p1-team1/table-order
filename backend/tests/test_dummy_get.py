@@ -4,10 +4,11 @@
 
 from app import dummy
 from tests.conftest import ADMIN, login
+from app.core.api_paths import ADMIN_API_PREFIX
 
 
 def test_user_get_dummies(client):
-    assert {"name", "branch", "slogan", "tables"} <= client.get("/api/v1/store").json().keys()
+    assert {"name", "branch", "slogan", "tables"} <= client.get("/api/store").json().keys()
     assert set(client.get("/api/content").json()) == {"categories", "staff_calls",
                                                        "quiz_questions", "weather", "rules"}
     assert client.get("/api/content/categories").json()[0]["id"] and client.get("/api/content/nope").status_code == 404
@@ -15,18 +16,18 @@ def test_user_get_dummies(client):
 
 def test_coupon_dummies(client):
     h = login(client, "가")
-    box = client.get("/api/v1/coupons", headers=h).json()
-    assert box == client.get("/api/coupons", headers=h).json() and {"id", "kind", "label", "used_at"} <= box[0].keys()
+    box = client.get("/api/coupons", headers=h).json()
+    assert {"id", "kind", "label", "used_at"} <= box[0].keys()
     assert "nickname" in client.get("/api/tables/1/coupons", headers=h).json()[0]
     assert client.get("/api/tables/2/coupons", headers=h).status_code == 403  # 이 태블릿에 로그인한 기록이 없으면 더미여도 막는다
 
 
 def test_admin_get_dummies(client):
-    menus = client.get("/admin/api/menus", headers=ADMIN).json()
+    menus = client.get(f"{ADMIN_API_PREFIX}/menus", headers=ADMIN).json()
     assert [c["id"] for c in menus["categories"]] == ["chicken", "anju", "soup", "beer", "soju", "side"] and menus["menus"]
-    orders = client.get("/admin/api/orders", headers=ADMIN).json()
+    orders = client.get(f"{ADMIN_API_PREFIX}/orders", headers=ADMIN).json()
     assert {"id", "ts", "table_no", "total", "lines", "ai_combo", "member_id", "nickname"} <= orders[0].keys()
-    mine = client.get("/admin/api/orders", headers=ADMIN, params={"member_id": 1}).json()
+    mine = client.get(f"{ADMIN_API_PREFIX}/orders", headers=ADMIN, params={"member_id": 1}).json()
     assert mine and all(o["member_id"] == 1 for o in mine)
 
 
@@ -54,11 +55,11 @@ def test_user_write_dummies(client):
 
 
 def test_admin_write_dummies(client):
-    saved = client.put("/admin/api/menus/c2", headers=ADMIN, json={"weight": 90, "soldout": True}).json()
+    saved = client.put(f"{ADMIN_API_PREFIX}/menus/c2", headers=ADMIN, json={"weight": 90, "soldout": True}).json()
     assert saved["id"] == "c2" and saved["weight"] == 90 and saved["soldout"] is True and saved["name"]
-    assert client.put("/admin/api/menus/new1", headers=ADMIN, json={"name": "신메뉴", "cat": "anju", "price": 9000}).json()["name"] == "신메뉴"
-    assert client.put("/admin/api/menus/c2", headers=ADMIN, json={"weight": 101}).status_code == 422  # 스키마 검증은 그대로
-    assert client.delete("/admin/api/menus/c2", headers=ADMIN).status_code == 204
-    assert client.put("/admin/api/content/staff_calls", headers=ADMIN, json=["💧 물"]).json() == ["💧 물"]
-    for method, path in (("put", "/admin/api/menus/c2"), ("delete", "/admin/api/menus/c2")):
+    assert client.put(f"{ADMIN_API_PREFIX}/menus/new1", headers=ADMIN, json={"name": "신메뉴", "cat": "anju", "price": 9000}).json()["name"] == "신메뉴"
+    assert client.put(f"{ADMIN_API_PREFIX}/menus/c2", headers=ADMIN, json={"weight": 101}).status_code == 422  # 스키마 검증은 그대로
+    assert client.delete(f"{ADMIN_API_PREFIX}/menus/c2", headers=ADMIN).status_code == 204
+    assert client.put(f"{ADMIN_API_PREFIX}/content/staff_calls", headers=ADMIN, json=["💧 물"]).json() == ["💧 물"]
+    for method, path in (("put", f"{ADMIN_API_PREFIX}/menus/c2"), ("delete", f"{ADMIN_API_PREFIX}/menus/c2")):
         assert getattr(client, method)(path).status_code in (401, 422)  # 인증은 그대로

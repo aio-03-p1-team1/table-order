@@ -14,6 +14,7 @@ from app.core.settings import Settings
 from app.factory import create_app
 from app.services.grades import KST
 from shared import api
+from shared.api_paths import ADMIN_API_PREFIX
 
 APP = str(ROOT / "admin" / "app.py")
 PAGES = ["대시보드", "메뉴 관리", "추천 가중치", "고객 등급", "주문 이력", "마케팅"]
@@ -110,9 +111,9 @@ def test_send_dry_run_updates_usage_and_log(server):
     send = button(app, "발송")
     assert not send.disabled
     send.click().run()
-    usage = server.get("/admin/api/marketing/sms/usage", headers={"Authorization": "Bearer admin-secret"}).json()
+    usage = server.get(f"{ADMIN_API_PREFIX}/marketing/sms/usage", headers={"Authorization": "Bearer admin-secret"}).json()
     assert sum(usage["used"].values()) == 2
-    logs = server.get("/admin/api/marketing/sms/logs", headers={"Authorization": "Bearer admin-secret"}).json()
+    logs = server.get(f"{ADMIN_API_PREFIX}/marketing/sms/logs", headers={"Authorization": "Bearer admin-secret"}).json()
     assert logs[0]["status"] == "dry_run" and logs[0]["target_count"] == 2
     assert not app.exception
 

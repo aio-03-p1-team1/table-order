@@ -15,8 +15,9 @@ from app.core.settings import Settings, get_settings
 from app.services import tokens
 from app.services.kakao import KakaoError
 from app.services.supabase_auth import SupabaseAuthError, new_pkce_pair
+from app.core.api_paths import API_PREFIX
 
-router = APIRouter(prefix="/api/auth", tags=["QR 로그인"])
+router = APIRouter(prefix=f"{API_PREFIX}/auth", tags=["QR 로그인"])
 
 
 class QrRequest(BaseModel):
@@ -43,7 +44,7 @@ async def create_qr(body: QrRequest, request: Request, settings: Settings = Depe
         store.discard(body.previous_secret)
     s = store.create(body.table_no, body.logged_in_member_ids)
     return {"token": s.token, "secret": s.secret, "expires_in": int(store.ttl),
-            "qr_url": f"{settings.public_base_url}/api/auth/kakao/start?token={s.token}"}
+            "qr_url": f"{settings.public_base_url}{API_PREFIX}/auth/kakao/start?token={s.token}"}
 
 
 @router.get("/qr/{secret}")
@@ -78,7 +79,7 @@ def _consent_page(token: str) -> HTMLResponse:
         '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
         '<body style="font-family:sans-serif;padding:32px 20px;max-width:420px;margin:auto">'
         '<h2 style="text-align:center">카카오로 로그인</h2>'
-        '<form action="/api/auth/kakao/continue" method="get">'
+        f'<form action="{API_PREFIX}/auth/kakao/continue" method="get">'
         f'<input type="hidden" name="token" value="{html.escape(token)}">'
         '<label style="display:flex;gap:10px;align-items:flex-start;font-size:16px;margin:24px 0 8px">'
         '<input type="checkbox" name="agree" value="1" style="width:22px;height:22px;flex:none">'
@@ -112,7 +113,7 @@ async def kakao_mock(state: str, request: Request, settings: Settings = Depends(
     return HTMLResponse(
         '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
         '<body style="font-family:sans-serif;text-align:center;padding:48px 20px"><h2>카카오 로그인 (모의)</h2>'
-        '<form action="/api/auth/kakao/callback" method="get">'
+        f'<form action="{API_PREFIX}/auth/kakao/callback" method="get">'
         f'<input type="hidden" name="state" value="{html.escape(state)}">'
         '<input type="hidden" name="code" id="c"><input id="n" value="카카오손님" style="font-size:18px;padding:8px">'
         '<button style="font-size:18px;padding:8px 16px" onclick="c.value=\'mock-\'+n.value">로그인</button></form></body>')

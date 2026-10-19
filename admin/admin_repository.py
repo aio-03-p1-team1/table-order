@@ -611,6 +611,27 @@ def data_source_mode() -> str:
     return mode if mode in MODES else "auto"
 
 
+def owner_login_enabled() -> bool:
+    """서버가 사장님 로그인(이메일/비밀번호)을 지원하면 True. 서버에 닿지 않거나 설정이 없으면 False(토큰 입력 화면 유지)."""
+    try:
+        return bool(api.get("/api/auth/owner/config").get("enabled"))
+    except Exception:  # 서버가 꺼져 있거나 옛 서버면 사장님 로그인 없이 토큰 화면을 보여 준다
+        return False
+
+
+def connect_owner(email: str, password: str) -> "LoginResult":
+    """사장님 이메일/비밀번호로 서버에 로그인하고, 받은 토큰으로 저장소를 만든다."""
+    try:
+        data = api.post("/api/auth/owner/login", json={"email": email, "password": password})
+    except api.ApiError as e:
+        return LoginResult(error=str(e.detail) if isinstance(e.detail, str) else "로그인에 실패했습니다.")
+    except api.ApiUnavailable:
+        return LoginResult(error="서버에 연결할 수 없습니다. 백엔드가 실행 중인지 확인해 주세요.")
+    result = connect(data["access_token"])
+    result.token = data["access_token"]  # 화면이 세션에 저장할 토큰
+    return result
+
+
 def skip_token_login() -> bool:
     """APP_ENV=dev 이고 ADMIN_SKIP_TOKEN (기본 켜짐) 이면 토큰 입력 화면 없이 ADMIN_TOKEN 으로 자동 로그인한다.
 
@@ -629,6 +650,7 @@ def default_admin_token() -> str:
 class LoginResult:
     def __init__(self, repo=None, error: str | None = None, notice: str | None = None):
         self.repo, self.error, self.notice = repo, error, notice
+        self.token = None  # 사장님 로그인(connect_owner)으로 받은 토큰
 
 
 def connect(token: str) -> LoginResult:

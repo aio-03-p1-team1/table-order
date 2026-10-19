@@ -21,7 +21,10 @@ def log_recommendation(params, combos):
     key = (tuple(sorted(params.items(), key=lambda kv: kv[0])), tuple(c["id"] for c in combos))
     if combos and ss.get("last_rec_key") != key:
         ss.last_rec_key = key
-        ctx.REPO.log_recommendation(ss.table, params, [c["id"] for c in combos], ss.access_token)
+        # 돌려받은 추천 기록 id 를 세션에 기억해 두었다가, AI 조합을 담아 주문할 때 주문에 연결한다.
+        event_id = ctx.REPO.log_recommendation(ss.table, params, [c["id"] for c in combos], ss.access_token)
+        if event_id:
+            ss.last_rec_event_id = event_id
 
 
 def recommend_cached(scope, params, lines):

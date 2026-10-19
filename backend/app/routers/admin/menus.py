@@ -23,6 +23,7 @@ class MenuIn(BaseModel):
     spicy: int | None = Field(default=None, ge=0, le=3)
     weight: int | None = Field(default=None, ge=0, le=100)  # OWNER 추천 가중치
     set_ok: bool | None = None
+    is_event: bool | None = None  # 이벤트(룰렛 서비스 메뉴) 선택 목록에 넣을지
     emoji: str | None = None
     tags: list[str] | None = None
 

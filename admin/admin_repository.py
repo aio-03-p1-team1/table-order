@@ -48,7 +48,7 @@ SPICY_LABELS = {0: "안 매움", 1: "순한맛", 2: "보통맛", 3: "아주 매�
 SPICY_VALUES = {v: k for k, v in SPICY_LABELS.items()}
 MODES = ("dummy", "api", "auto")
 DEFAULT_RULE = {"repeat": 2, "regular": 5, "dormant": 30}
-MENU_COLUMNS = ["id", "메뉴명", "카테고리", "가격", "설명", "이미지 URL", "판매 여부", "매운 정도", "추천 가중치", "세트 가능"]
+MENU_COLUMNS = ["id", "메뉴명", "카테고리", "가격", "설명", "이미지 URL", "판매 여부", "매운 정도", "추천 가중치", "세트 가능", "이벤트"]
 
 
 class ApiBackend:
@@ -222,9 +222,9 @@ SERVICE_MENU_NAMES = {"a1": "맛보기 먹태구이", "d1": "탄산음료", "j1"
 ALL_MENU_LABEL = "[할인] 전체 메뉴"
 
 
-def _service_menu_allowed(menu: dict) -> bool:
-    """사장님이 정한 맛보기·간식·음료 메뉴만 룰렛 서비스로 허용한다."""
-    return menu["id"] in SERVICE_MENU_IDS
+def _is_event(menu: dict) -> bool:
+    """메뉴의 이벤트 체크 여부. 서버가 is_event 를 안 보내는 옛 응답이면 기본 메뉴만 체크된 것으로 본다."""
+    return bool(menu.get("is_event", menu["id"] in SERVICE_MENU_IDS))
 
 
 def _menu_emoji(name: str, original: str = "") -> str:
@@ -263,7 +263,8 @@ class AdminRepository:
         names = {c["id"]: c["name"] for c in payload["categories"]}
         rows = [{"id": m["id"], "메뉴명": m["name"], "카테고리": names.get(m["cat"], m["cat"]), "가격": m["price"],
                  "설명": m["desc"], "이미지 URL": m["image_url"], "판매 여부": not m["soldout"],
-                 "매운 정도": SPICY_LABELS.get(m["spicy"], "안 매움"), "추천 가중치": m["weight"], "세트 가능": m["set_ok"]}
+                 "매운 정도": SPICY_LABELS.get(m["spicy"], "안 매움"), "추천 가중치": m["weight"], "세트 가능": m["set_ok"],
+                 "이벤트": _is_event(m)}
                 for m in payload["menus"]]
         return pd.DataFrame(rows, columns=MENU_COLUMNS)
 
@@ -353,14 +354,16 @@ class AdminRepository:
 
     # ---- 메뉴 등록 (선택한 카테고리에) ----
     def add_menu(self, category_id: str, name: str, price: int, desc: str = "", image_url: str = "",
-                 soldout: bool = False, spicy: str = "안 매움", weight: int = 50, set_ok: bool = False) -> str:
+                 soldout: bool = False, spicy: str = "안 매움", weight: int = 50, set_ok: bool = False,
+                 is_event: bool = False) -> str:
         name = (name or "").strip()
         if not name:
             raise CategoryError("메뉴 이름을 입력해 주세요.")
         menu_id = f"m{uuid.uuid4().hex[:6]}"
         self.backend.save_menu(menu_id, {"name": name, "cat": category_id, "price": int(price), "desc": desc.strip(),
                                          "image_url": image_url.strip(), "soldout": soldout,
-                                         "spicy": SPICY_VALUES.get(spicy, 0), "weight": int(weight), "set_ok": set_ok})
+                                         "spicy": SPICY_VALUES.get(spicy, 0), "weight": int(weight), "set_ok": set_ok,
+                                         "is_event": is_event})
         return menu_id
 
     def save_menus(self, new: pd.DataFrame, old: pd.DataFrame) -> dict:
@@ -378,7 +381,7 @@ class AdminRepository:
                 "name": row["메뉴명"], "cat": ids[row["카테고리"]], "price": int(row["가격"]), "desc": _text(row["설명"]),
                 "image_url": _text(row["이미지 URL"]), "soldout": not bool(row["판매 여부"]),
                 "spicy": SPICY_VALUES.get(row["매운 정도"], 0), "weight": int(row["추천 가중치"]),
-                "set_ok": bool(row["세트 가능"])})
+                "set_ok": bool(row["세트 가능"]), "is_event": bool(row["이벤트"])})
         deleted = [i for i in old_by_id if i not in seen]
         # 체크 삭제와 나머지 행 수정도 같은 목록에 넣어 한 트랜잭션으로 보낸다.
         batch = changed + [{"id": menu_id, "delete": True} for menu_id in deleted]
@@ -392,14 +395,16 @@ class AdminRepository:
 
     # ---- 이벤트: 룰렛 ----
     def roulette_menu_choices(self) -> list[dict]:
-        """서비스 가능한 메뉴만 카테고리 순으로 묶어 선택 목록을 만든다."""
+        """이벤트로 체크한 메뉴만 카테고리 순으로 묶어 선택 목록을 만든다."""
         payload = self.backend.menus()
+        # 체크가 풀렸어도 이미 룰렛 칸에 저장된 메뉴는 목록에 남겨, 기존 설정이 깨지지 않게 한다.
+        in_use = {prize.get("item_id") for prize in self.backend.roulette_prizes()}
         category_names = {category["id"]: category["name"] for category in payload["categories"]}
         category_order = {category["id"]: order for order, category in enumerate(payload["categories"])}
         choices = []
         menus = sorted(payload["menus"], key=lambda menu: (category_order.get(menu["cat"], 999), menu["name"]))
         for menu in menus:
-            if _service_menu_allowed(menu):
+            if _is_event(menu) or menu["id"] in in_use:
                 category = category_names.get(menu["cat"], menu["cat"])
                 display_name = SERVICE_MENU_NAMES.get(menu["id"], menu["name"])
                 choices.append({"id": menu["id"], "name": display_name, "category": category,

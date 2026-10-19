@@ -42,7 +42,7 @@ streamlit run admin/app.py --server.port 8502   # 관리자 (APP_ENV=dev 면 토
 - 테이블 누적 주문(`GET /v1/tables/{id}/orders`)은 `table_logins`의 로그인 시각 이후 주문만 합산한다. `table_sessions` 같은 별도 테이블을 만들지 않는다.
 - AI 챗봇은 제미나이 무료 API를 쓰고 RAG 없이 DB 데이터를 근거로 답한다.
 - 문자 발송은 솔라피. `SMS_DRY_RUN=true`(기본)이면 실제 전송 없이 기록만 한다.
-- 관리자 인증(Supabase Auth `owners`)은 모든 개발이 끝난 뒤 마지막에 한다. 지금은 `ADMIN_TOKEN` 방식을 쓰고, 챗봇 `owner_id` 문제도 그때까지 보류.
+- 관리자 인증은 Supabase Auth 이메일/비밀번호 + `owners` 등록 계정이다(`POST /api/auth/owner/login`, 계정 등록은 `docs/db/fbgrowth_owner_add.sql`). `SUPABASE_URL`·`SUPABASE_ANON_KEY`가 있으면 로그인 화면이 사장님 로그인으로 바뀐다. `ADMIN_TOKEN`은 개발용이며 `APP_ENV=prod`이고 Supabase가 설정되면 거부된다. 챗봇 대화방 주인은 로그인한 사장님이고, 토큰으로 들어오면 `CHAT_OWNER_ID`를 쓴다.
 - DB 설계는 `docs/DB_설계.md`와 `docs/db/fbgrowth_schema.sql`이 기준이며 Supabase `table-order` 프로젝트에 적용되어 있다. 서버 `stores/`는 아직 SQLite 호환 구조이므로 Supabase 스키마로 옮기는 작업이 남아 있다.
 
 ## 작업 원칙

@@ -28,13 +28,13 @@ class MenuIn(BaseModel):
 
 
 @router.get("/menus")
-async def menus(request: Request):
+def menus(request: Request):
     """관리자 화면에 필요한 카테고리와 메뉴 목록을 돌려준다."""
     return {"categories": menu_categories(request), "menus": request.app.state.shop.menus()}
 
 
 @router.put("/menus/{menu_id}")
-async def save_menu(menu_id: str, body: MenuIn | list[MenuIn], request: Request):
+def save_menu(menu_id: str, body: MenuIn | list[MenuIn], request: Request):
     """한 메뉴 또는 여러 메뉴를 기존 PUT 경로에서 검증한 뒤 저장한다."""
     shop = request.app.state.shop
     categories = {category["id"] for category in menu_categories(request)}
@@ -87,7 +87,7 @@ def _validate_menu_fields(shop, menu_id: str, fields: dict, categories: set[str]
 
 
 @router.delete("/menus/{menu_id}", status_code=204)
-async def delete_menu(menu_id: str, request: Request):
+def delete_menu(menu_id: str, request: Request):
     """메뉴를 삭제하고, 없는 메뉴면 404를 돌려준다."""
     if not request.app.state.shop.delete_menu(menu_id):
         raise HTTPException(404, "메뉴를 찾을 수 없습니다.")

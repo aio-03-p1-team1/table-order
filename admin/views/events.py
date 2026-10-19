@@ -13,10 +13,15 @@ ss = st.session_state
 
 
 def wheel_preview(table, odds):
-    """칸 색을 이은 원 미리보기 + 칸별 확률 목록 (손님 화면 룰렛은 칸이 모두 같은 크기이고 확률만 다르다)."""
-    n = len(table)
-    stops = ", ".join(f"{c if isinstance(c, str) and c.startswith('#') else '#888'} {i * 100 / n:.2f}% {(i + 1) * 100 / n:.2f}%"
-                      for i, c in enumerate(table["색상"]))
+    """칸 색을 이은 원 미리보기 + 칸별 확률 목록 (손님 화면 룰렛처럼 칸 크기가 확률에 비례한다)."""
+    # 칸 크기 = 확률(%) 그대로. 누적 합으로 각 칸의 시작 위치를 구한다 (확률 합이 100이 되도록 odds 는 이미 비율이다).
+    total = sum(odds) or 1
+    stops, pos = [], 0.0
+    for c, o in zip(table["색상"], odds):
+        end = pos + 100 * o / total
+        stops.append(f"{c if isinstance(c, str) and c.startswith('#') else '#888'} {pos:.2f}% {end:.2f}%")
+        pos = end
+    stops = ", ".join(stops)
     rows = "".join(f'<div class="bar-row"><span class="n">{escape(str(r["이모지"]))} {escape(str(r["표시 문구"]))}</span>'
                    f'<span class="t"><i style="width:{max(o, 1.5):.0f}%"></i></span><span class="c">{o:g}%</span></div>'
                    for (_, r), o in zip(table.iterrows(), odds))

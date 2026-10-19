@@ -461,8 +461,9 @@ class AdminRepository:
         if not ROULETTE_MIN_SLOTS <= len(prizes) <= ROULETTE_MAX_SLOTS:
             raise CategoryError(f"룰렛 칸은 {ROULETTE_MIN_SLOTS}~{ROULETTE_MAX_SLOTS}개여야 해요.")
         weights = [p["weight"] for p in prizes]
-        if any(weight % 10 for weight in weights) or sum(weights) != 100:
-            raise CategoryError("확률은 10% 단위로 고르고 전체 합계를 100%로 맞춰 주세요.")
+        # 직접 입력한 1% 단위 확률도 허용하되 전체 합계는 반드시 100%로 유지한다.
+        if any(weight % 1 for weight in weights) or sum(weights) != 100:
+            raise CategoryError("확률은 1% 단위로 입력하고 전체 합계를 100%로 맞춰 주세요.")
         self.backend.save_roulette_prizes(prizes)
 
     # ---- 고객 / 주문 / 통계 ----
@@ -473,6 +474,12 @@ class AdminRepository:
         if self.source != "api":
             return self.backend.regular_preferences()
         return api.get("/admin/api/marketing/regular-preferences", self.backend.token)["preferences"]
+
+    def live_activity(self) -> dict:
+        """새 로그인·주문 확인용 폴링 조회. 더미 모드는 변화가 없는 고정 값을 돌려준다."""
+        if self.source != "api":
+            return {"login_id": 0, "order_id": 0, "recent": []}
+        return api.get("/admin/api/marketing/live-activity", self.backend.token)
 
     def customer_grades(self, rule: dict | None = None) -> dict:
         """화면에서 다시 세지 않고 백엔드가 집계한 등급별 인원을 사용한다."""

@@ -89,6 +89,12 @@ def test_sidebar_sub_menus_are_collapsible_and_select_tabs():
     assert "tab" not in app.query_params and app.sidebar.radio(key="nav_sub_주문 이력").value is None
 
 
+def _has_table_map(app):
+    """배치도 SVG 가 st.html 이 아니라 이미지로 표시되는지 확인한다(st.html 은 <svg> 를 지워 화면에 안 보였다)."""
+    assert not any("<svg" in h.value for h in app.get("html"))
+    return any(i.proto.imgs[0].url.startswith("data:image/svg+xml") for i in app.get("image"))
+
+
 def open_recommend():
     """AI 추천 화면을 열고 [AI 추천 받기] 버튼을 눌러 추천을 만든 상태로 돌려준다."""
     app = open_marketing("AI 추천")
@@ -102,7 +108,7 @@ def test_recommend_runs_only_on_button_and_map_always_shows():
     assert not app.exception
     assert not [h for h in app.get("html") if 'class="rec recommendation-card"' in h.value]
     assert any("AI 추천 받기" in i.value for i in app.info)
-    assert any("<svg" in h.value and "매장 테이블 배치도" in h.value for h in app.get("html"))
+    assert _has_table_map(app)
     app.button(key="mk_rerecommend").click().run()
     assert [h for h in app.get("html") if 'class="rec recommendation-card"' in h.value]
     assert app.session_state["mk_rec_round"] == 0 if "mk_rec_round" in app.session_state else True
@@ -272,10 +278,43 @@ def test_server_chat_new_button_creates_room_and_list_switches(monkeypatch):
 
 
 def test_recommend_tab_shows_table_map_with_highlight():
-    """AI 추천 화면의 손님 응대 제안에 테이블 배치도가 보이고, 제안이 있는 테이블만 눌러 볼 수 있다."""
+    """AI 추천 화면의 손님 응대 제안에 테이블 배치도가 보이고, 제안은 오른쪽 목록에만 나온다(버튼 없음)."""
     app = open_marketing("AI 추천")
-    buttons = {b.key: b for b in app.button if b.key and b.key.startswith("mk_table_")}
-    assert buttons, "제안이 있는 테이블 버튼이 있어야 한다"
-    assert any("<svg" in e.value and "매장 테이블 배치도" in e.value for e in app.get("html"))  # 아이소메트릭 SVG 배치도
-    list(buttons.values())[-1].click().run()
     assert not app.exception
+    assert _has_table_map(app)  # 아이소메트릭 SVG 배치도
+    cards = [h.value for h in app.get("html") if h.value.startswith('<div class="rec table-suggestion"')]
+    assert cards and all("멘트</b>" in c for c in cards)
+    assert not [b for b in app.button if b.key and b.key.startswith("mk_table_")]  # 배치도 아래 버튼은 없다
+
+
+def test_polling_toasts_new_login_and_order(monkeypatch):
+    """주기 확인(폴링)에서 번호가 늘면 새 로그인·주문 알림이 뜬다. 처음 열 때는 알리지 않는다."""
+    state = {"login_id": 1, "order_id": 1, "recent": []}
+    monkeypatch.setattr(repo_mod.AdminRepository, "live_activity", lambda self: dict(state), raising=False)
+    app = open_marketing("AI 추천")
+    assert not app.exception and not app.toast  # 첫 확인은 기준만 기억한다
+    state.update(login_id=2, order_id=2, recent=[
+        {"kind": "login", "id": 2, "table_no": 5, "nickname": "새손님", "at": "x"},
+        {"kind": "order", "id": 2, "table_no": 5, "nickname": "새손님", "at": "x"},
+        {"kind": "order", "id": 1, "table_no": 9, "nickname": "옛손님", "at": "x"}])
+    app.run()
+    texts = [t.value for t in app.toast]
+    assert not app.exception
+    assert any("5번 테이블 새손님님 로그인" in t for t in texts) and any("5번 테이블 새손님님 주문" in t for t in texts)
+    assert not any("9번" in t for t in texts)  # 이미 알았던 옛 주문은 알리지 않는다
+
+
+def test_polling_announces_new_suggestion_table(monkeypatch):
+    """폴링으로 새 응대 제안이 생기면 알림이 뜨고 그 테이블이 목록 맨 위에 NEW 로 나온다."""
+    base = repo_mod.AdminRepository.regular_preferences
+    extra = {}
+    monkeypatch.setattr(repo_mod.AdminRepository, "regular_preferences",
+                        lambda self: base(self) + ([extra["pref"]] if extra else []))
+    app = open_marketing("AI 추천")
+    assert not app.exception and not app.toast
+    first = base(app.session_state["repo"])[0]
+    extra["pref"] = {**first, "member_id": 999999, "current_order_id": 999999, "today_table": 29, "nickname": "새단골"}
+    app.run()
+    assert any("새 응대 제안: 29번 테이블" in t.value for t in app.toast)
+    cards = [h.value for h in app.get("html") if h.value.startswith('<div class="rec table-suggestion"')]
+    assert "29번 테이블 · 새단골님" in cards[0] and "NEW" in cards[0]  # 새 제안이 맨 위

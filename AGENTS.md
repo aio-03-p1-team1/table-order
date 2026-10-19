@@ -26,7 +26,7 @@ streamlit run admin/app.py --server.port 8502   # 관리자 (APP_ENV=dev 면 토
 - 린터·포매터·빌드 설정은 없다. 완료 기준은 위 두 테스트가 실패 없이 통과하는 것(skip은 허용).
 
 ## 구조
-- `backend/app/`: `routers/`(손님 API는 기능별 파일: user.py(회원·로그인 기록), store/menus/orders/coupons/roulette/staff_calls/ai/content.py, auth.py, admin/) → `services/` → `stores/`(SQL은 여기만) , `dummy/`(더미 응답, 담당별 `*_data.py`), `seed/`.
+- `backend/app/`: `routers/`(손님 API는 기능별 파일: user.py(회원·로그인 기록), store/menus/orders/coupons/roulette/staff_calls/ai/content.py, auth.py, admin/) → `services/` → `stores/`(SQL은 여기만) , `seed/`.
 - `user/`, `admin/`: `app.py`는 진입점만. 화면은 `views/`, 공용 UI는 `ui/`, 세션 상태·계산은 `state/`. 폴더명을 `pages`로 쓰지 않는다(Streamlit 자동 멀티페이지 때문).
 - 화면 코드는 `api`를 직접 부르지 않고 `user/user_repository.py`, `admin/admin_repository.py`만 부른다.
 - API 경로: 손님 `/api/...`, 관리자 `/admin/api/...`. 기준 문서는 `docs/api/FBGrowth_API_경로_통합_정리_최종_v7_목록표만.md`, 담당 분배는 `docs/api/FBGrowth_API_담당_분배_3-2-2-2-1.md`.
@@ -34,12 +34,6 @@ streamlit run admin/app.py --server.port 8502   # 관리자 (APP_ENV=dev 면 토
 - 문서 목록: `docs/팀_공지.md`(팀원 공지, 어떤 문서를 언제 보는지), `docs/todo/`(담당자별 TODO), `docs/api/`(API 경로·담당 분배), `docs/TODO_충돌_오류.md`(충돌·오류), `docs/개발_가이드.md`·`docs/DB_설계.md`·`docs/기능흐름_*.md`·`docs/코드_둘러보기.md`.
 - TODO 진행 중 충돌·오류와 해결: `docs/TODO_충돌_오류.md`
 - 상세: `docs/개발_가이드.md`(API 추가 순서), `docs/DB_설계.md`(DB 설계), `docs/기능흐름_*.md`(기능 흐름), `docs/코드_둘러보기.md`.
-
-## 더미 상태 (팀원이 구현할 뼈대)
-- 실제 구현은 **QR 로그인**(`/api/auth/*`, `/api/members/me`, `/api/tables/{n}/logins`), **문자 발송**(`/admin/api/marketing/sms/*`), 고객 목록(`GET /admin/api/members`), 손님 메뉴 목록(`GET /api/menus`), 관리자 메뉴 목록(`GET /admin/api/menus`)이다. 나머지 기능은 더미 응답을 돌려주거나 아직 구현되지 않았다.
-- 아직 더미인 엔드포인트 찾기: `grep -rn "dummy\." backend/app/routers`, 목록은 `dummy.DUMMY_ENDPOINTS`.
-- 실제 DB로 교체하는 방법: ① 라우터의 `dummy.xxx()` 호출을 store/service 호출로 바꾸고(라우터·stores의 TODO 주석, `NotImplementedError` 뼈대에 구현할 내용이 적혀 있음) ② `dummy/`의 해당 `*_data.py`에서 함수와 `ENDPOINTS` 줄을 지우고(`dummy/__init__.py`는 고치지 않는다) ③ 해당 테스트의 `skip`을 제거한다. 이전 구현 참고: 커밋 `a8b3d14`.
-- 교체가 끝나 더미가 없어지면 이 섹션을 삭제한다.
 
 ## 정해진 제품 규칙 (어기지 말 것)
 - 주문 상태 기능·UI는 없다(접수/조리중 같은 상태를 만들지 않는다).

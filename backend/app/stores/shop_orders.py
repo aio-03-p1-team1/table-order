@@ -2,8 +2,6 @@
 
 Supabase 에서는 orders(주문) / order_items(줄) / order_item_components(AI 조합 구성 메뉴) 세 테이블로 나뉜다.
 밖으로는 예전처럼 ts·lines 를 가진 주문 하나로 돌려준다.
-
-[뼈대] 시그니처와 스키마만 남겼다. 구현은 TODO 를 따라 채운다.
 """
 from datetime import datetime, timezone
 SCHEMA = """\

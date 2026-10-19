@@ -105,10 +105,6 @@ class ApiBackend:
         """실제 메뉴 카테고리와 메뉴 개수를 API에서 그대로 가져온다."""
         return [category for category in self.categories_full() if category["id"] not in VIRTUAL_CATEGORIES]
 
-    def save_categories(self, categories):
-        # 구형 전체 교체 호출은 새 개별 API로 옮긴 뒤에도 호환용으로 남겨 둔다.
-        return self._changed(api.put("/admin/api/content/categories", self.token, json=categories))
-
     def add_category(self, category):
         return self._changed(api.post(ENDPOINTS["categories"], self.token, json=category))
 

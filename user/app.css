@@ -22,6 +22,11 @@ button:focus-visible { outline: 3px solid #ffcf54 !important; outline-offset: 3p
 .st-key-header_actions { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px !important; }
 .st-key-header_actions > [data-testid="stElementContainer"] { width: 100% !important; }
 .st-key-header_actions button { padding: 8px; white-space: nowrap; }
+/* 로고 클릭 영역: 투명 버튼을 로고 위에 겹쳐 놓는다 */
+.st-key-brand_link { position: relative; }
+.st-key-brand_home { position: absolute !important; inset: 0; z-index: 2; width: 100% !important; height: 100% !important; }
+.st-key-brand_home * { width: 100% !important; height: 100% !important; }
+.st-key-brand_home button { opacity: 0; cursor: pointer; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand .logo { flex: 0 0 48px; width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg,#ffb703,#e63946); display: flex; align-items: center; justify-content: center; font-size: 28px; }
 .brand .name { font-size: 24px; font-weight: 900; letter-spacing: -.5px; line-height: 1.3; word-break: keep-all; }

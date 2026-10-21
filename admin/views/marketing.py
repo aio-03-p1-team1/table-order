@@ -319,16 +319,41 @@ def _render_table_map(repo, preferences):
             """라벨은 굵게, 내용은 한 줄로 보여 주는 한 행 (DB 텍스트는 이스케이프)."""
             return f'<div class="ts-row"><b>{label}</b> {escape(text)}</div>' if text else ""
 
+        def card_html(number, tip):
+            """응대 제안 카드 한 장의 HTML (NEW·태그 배지 포함)."""
+            badges = (' <span class="tag bad">NEW</span>' if number in fresh else "") \
+                + (f' <span class="tag ok">{escape(tip["tag"])}</span>' if tip["tag"] else "")
+            return ('<div class="rec table-suggestion"><div class="rt">' + escape(f"{number}번 테이블 · {tip['nickname']}님")
+                    + badges + '</div>' + line("방문", tip["visit"]) + line("오늘 주문", tip["order"])
+                    + line("취향", tip["taste"]) + line("근거", tip["reason"])
+                    + line("추천 행동", tip["action"]) + line("멘트", f"“{tip['note']}”") + '</div>')
+
+        # 확인한 카드는 화면 세션에 기억한다(카드마다 테이블·손님·주문 내용으로 구분). 새로 고침하면 다시 미확인이 된다.
+        done = ss.setdefault("mk_tip_done", set())
+        keys = {number: f"{number}|{suggestions[number]['nickname']}|{suggestions[number]['order']}" for number in order}
+        waiting = [number for number in order if keys[number] not in done]
+        checked = [number for number in order if keys[number] in done]
+
         # 제안이 많아도 화면이 길어지지 않게 오른쪽 영역 안에서 스크롤한다
         with st.container(height=460, border=False):
-            for number in order:
-                tip = suggestions[number]
-                badges = (' <span class="tag bad">NEW</span>' if number in fresh else "") \
-                    + (f' <span class="tag ok">{escape(tip["tag"])}</span>' if tip["tag"] else "")
-                st.html('<div class="rec table-suggestion"><div class="rt">' + escape(f"{number}번 테이블 · {tip['nickname']}님")
-                        + badges + '</div>' + line("방문", tip["visit"]) + line("오늘 주문", tip["order"])
-                        + line("취향", tip["taste"]) + line("근거", tip["reason"])
-                        + line("추천 행동", tip["action"]) + line("멘트", f"“{tip['note']}”") + '</div>')
+            # 미확인 영역: 카드마다 '확인' 버튼을 두고, 누르면 확인 영역으로 옮긴다
+            with st.expander(f"미확인 ({len(waiting)})", expanded=True):
+                if not waiting:
+                    st.caption("확인하지 않은 제안이 없어요.")
+                for number in waiting:
+                    st.html(card_html(number, suggestions[number]))
+                    if st.button("확인", key=f"mk_tip_ok_{keys[number]}"):
+                        done.add(keys[number])
+                        st.rerun(scope="fragment")  # 이 영역만 다시 그려 카드가 확인 영역으로 이동한다
+            # 확인 영역: 이미 확인한 카드. 실수로 눌렀다면 '미확인으로 되돌리기'를 쓴다
+            with st.expander(f"확인 ({len(checked)})", expanded=False):
+                if not checked:
+                    st.caption("확인한 제안이 아직 없어요.")
+                for number in checked:
+                    st.html(card_html(number, suggestions[number]))
+                    if st.button("미확인으로 되돌리기", key=f"mk_tip_undo_{keys[number]}"):
+                        done.discard(keys[number])
+                        st.rerun(scope="fragment")
 
 
 @st.fragment(run_every=POLL_SECONDS)  # 이 영역만 POLL_SECONDS 초마다 다시 실행해 새 로그인·주문을 확인한다

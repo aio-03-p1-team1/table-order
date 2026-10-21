@@ -56,7 +56,7 @@
 | 서준 | 메뉴 · 카테고리 · 추천 가중치 | [열기 ↗](https://github.com/stardroplatte89) |
 | 석원 | 관리자 AI 추천 · 직원 호출 · 룰렛 설정 | [열기 ↗](https://github.com/swihm1989-ship-it) |
 
-담당별 상세 작업은 [`docs/todo/`](docs/todo), API 담당 분배는 [`docs/api/FBGrowth_API_담당_분배_3-2-2-2-1.md`](docs/api/FBGrowth_API_담당_분배_3-2-2-2-1.md)에 있습니다.
+담당별 상세 작업은 [`docs/todo/`](docs/todo), API 담당 분배는 [`docs/설계/참고/FBGrowth_API_담당_분배_3-2-2-2-1.md`](docs/설계/참고/FBGrowth_API_담당_분배_3-2-2-2-1.md)에 있습니다.
 
 ---
 
@@ -375,13 +375,16 @@ python -m pytest tests -q        # 화면·통합 (저장소 루트에서)
 | 문서 | 내용 |
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | 프로젝트 규칙, 실행·테스트 명령, 제품 규칙, Git 규칙 |
-| [`docs/팀_공지.md`](docs/팀_공지.md) | 팀원 공지, 어떤 문서를 언제 보는지 |
-| [`docs/기능흐름_손님_관리자.md`](docs/기능흐름_손님_관리자.md) | 손님·사장님 관점 기능 흐름 |
-| [`docs/기능흐름_개발자.md`](docs/기능흐름_개발자.md) | 개발자 관점 기능 흐름 |
-| [`docs/코드_둘러보기.md`](docs/코드_둘러보기.md) | 폴더 지도와 핵심 코드 설명 |
-| [`docs/개발_가이드.md`](docs/개발_가이드.md) | 새 API 추가 순서, 경로·스키마 변경 규칙 |
-| [`docs/DB_설계.md`](docs/DB_설계.md) | DB 설계 (실행용 SQL: `docs/db/fbgrowth_schema.sql`) |
-| [`docs/정식_구현_계획.md`](docs/정식_구현_계획.md) | QR 로그인·솔라피 구현 기준, 카카오/Supabase 설정 |
-| [`docs/배포_체크리스트.md`](docs/배포_체크리스트.md) | 배포 전 확인할 것 |
-| [`docs/TODO_충돌_오류.md`](docs/TODO_충돌_오류.md) | TODO 구현 중 충돌·오류와 해결 방법 |
-| [`docs/api/`](docs/api) | API 경로 기준(v7), 담당 분배표 |
+| [`docs/가이드/팀_공지.md`](docs/가이드/팀_공지.md) | 팀원 공지, 어떤 문서를 언제 보는지 |
+| [`docs/기능흐름/기능흐름_손님_관리자.md`](docs/기능흐름/기능흐름_손님_관리자.md) | 손님·사장님 관점 기능 흐름 |
+| [`docs/기능흐름/기능흐름_개발자.md`](docs/기능흐름/기능흐름_개발자.md) | 개발자 관점 기능 흐름 |
+| [`docs/가이드/코드_둘러보기.md`](docs/가이드/코드_둘러보기.md) | 폴더 지도와 핵심 코드 설명 |
+| [`docs/가이드/개발_가이드.md`](docs/가이드/개발_가이드.md) | 새 API 추가 순서, 경로·스키마 변경 규칙 |
+| [`docs/설계/DB_설계.md`](docs/설계/DB_설계.md) | DB 설계 (실행용 SQL: `docs/db/fbgrowth_schema.sql`) |
+| [`docs/가이드/정식_구현_계획.md`](docs/가이드/정식_구현_계획.md) | QR 로그인·솔라피 구현 기준, 카카오/Supabase 설정 |
+| [`docs/가이드/배포_체크리스트.md`](docs/가이드/배포_체크리스트.md) | 배포 전 확인할 것 |
+| [`docs/todo/TODO_충돌_오류.md`](docs/todo/TODO_충돌_오류.md) | TODO 구현 중 충돌·오류와 해결 방법 |
+| [`docs/설계/API_설계.md`](docs/설계/API_설계.md) | API 설계 (엔드포인트별 요청·응답·인증) |
+| [`docs/설계/화면_설계.md`](docs/설계/화면_설계.md) | 화면 설계 (손님·관리자 화면 구성과 이동 흐름) |
+| [`docs/설계/참고/`](docs/설계/참고) | 옛 API 기획(v7), 담당 분배표 |
+| [`docs/README.md`](docs/README.md) | docs 폴더 전체 문서 지도 |

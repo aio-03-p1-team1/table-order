@@ -161,22 +161,29 @@ table-order
 ## 🏗 시스템 아키텍처
 
 ```mermaid
+%%{init: {"theme": "base", "themeVariables": {"fontSize": "18px"}, "flowchart": {"htmlLabels": true, "nodeSpacing": 50, "rankSpacing": 70, "padding": 24, "wrappingWidth": 360}}}%%
 flowchart TB
-    subgraph Client["화면 (Streamlit)"]
-        U["🍺 손님 태블릿 · user/ :8501<br/>룰렛 · 메뉴 · AI 추천 · 주문"]
-        A["🧑‍🍳 사장님 PC · admin/ :8502<br/>대시보드 · 고객 · 마케팅"]
+    subgraph Client["　화면 (Streamlit)　"]
+        direction LR
+        U["<b>🍺 손님 태블릿</b><br/>user/ · 포트 8501<br/><br/>룰렛 · 메뉴<br/>AI 추천 · 주문　"]
+        A["<b>🧑‍🍳 사장님 PC</b><br/>admin/ · 포트 8502<br/><br/>대시보드 · 고객<br/>마케팅　"]
     end
-    P["📱 손님 휴대폰"]
-    subgraph Server["FastAPI 서버 · backend/ :8000"]
-        R["routers"] --> S["services"] --> ST["stores<br/>(SQL은 여기서만)"]
+    P["<b>📱 손님 휴대폰</b><br/>QR 스캔<br/>카카오 로그인　"]
+    subgraph Server["　FastAPI 서버 · backend/ · 포트 8000　"]
+        direction LR
+        R["<b>routers</b><br/>요청 받기　"] --> S["<b>services</b><br/>업무 처리　"] --> ST["<b>stores</b><br/>SQL은 여기서만　"]
     end
     U -- "user_repository.py" --> R
     A -- "admin_repository.py" --> R
-    P -- "QR 스캔 · 카카오 로그인" --> R
-    ST --> DB[("Supabase<br/>PostgreSQL")]
-    S --> K["카카오 로그인"]
-    S --> SMS["솔라피 문자"]
-    S --> G["Google Gemini"]
+    P -- "QR 로그인 요청" --> R
+    ST --> DB[("<b>Supabase</b><br/>PostgreSQL　")]
+    subgraph Ext["　외부 서비스　"]
+        direction LR
+        K["카카오 로그인　"]
+        SMS["솔라피 문자　"]
+        G["Google Gemini　"]
+    end
+    S --> Ext
 ```
 
 - 화면 코드는 서버 API를 직접 부르지 않고 `user/user_repository.py`, `admin/admin_repository.py`만 부릅니다.

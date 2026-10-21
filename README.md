@@ -6,7 +6,7 @@
 
 > 프로젝트: aio-03 · P1 · Team 1
 
-[🌟 주요 기능](#-주요-기능) · [🚀 실행 방법](#-실행-방법) · [🏗 시스템 아키텍처](#-시스템-아키텍처) · [📚 관련 문서](#-관련-문서)
+[📚 관련 문서](#-관련-문서) · [🏗 시스템 아키텍처](#-시스템-아키텍처) · [🚀 실행 방법](#-실행-방법) · [🌟 주요 기능](#-주요-기능)
 
 ---
 
@@ -15,15 +15,14 @@
 1. [프로젝트 소개](#-프로젝트-소개)
 2. [팀원](#-팀원)
 3. [기획 배경](#-기획-배경)
-4. [주요 기능](#-주요-기능)
-5. [AI 기능](#-ai-기능)
-6. [서비스 이용 흐름](#-서비스-이용-흐름)
-7. [기술 스택](#-기술-스택)
-8. [시스템 아키텍처](#-시스템-아키텍처)
-9. [프로젝트 구성](#-프로젝트-구성)
-10. [실행 방법](#-실행-방법)
-11. [구현 현황](#-구현-현황)
-12. [관련 문서](#-관련-문서)
+4. [관련 문서](#-관련-문서)
+5. [프로젝트 구성](#-프로젝트-구성)
+6. [기술 스택](#-기술-스택)
+7. [시스템 아키텍처](#-시스템-아키텍처)
+8. [서비스 이용 흐름](#-서비스-이용-흐름)
+9. [실행 방법](#-실행-방법)
+10. [주요 기능](#-주요-기능)
+11. [AI 기능](#-ai-기능)
 
 ---
 
@@ -43,7 +42,6 @@
 | **손님 화면** (Streamlit, `user/`) | 룰렛·QR 로그인, 메뉴 보기, 장바구니·쿠폰함, AI 추천 조합, 직원 호출 |
 | **관리자 화면** (Streamlit, `admin/`) | 대시보드·매출 분석, 메뉴·품절 관리, 룰렛 확률 설정, 고객 등급, 마케팅 문자·AI 챗봇 |
 | **API 서버** (FastAPI, `backend/`) | 카카오 QR 로그인, 회원·주문·쿠폰 저장, 통계 계산, 솔라피 문자 발송, 제미나이 호출 |
-
 ---
 
 ## 👥 팀원
@@ -56,7 +54,7 @@
 | 서준 | 메뉴 · 카테고리 · 추천 가중치 | [열기 ↗](https://github.com/stardroplatte89) |
 | 석원 | 관리자 AI 추천 · 직원 호출 · 룰렛 설정 | [열기 ↗](https://github.com/swihm1989-ship-it) |
 
-담당별 상세 작업은 [`docs/todo/`](docs/todo), API 담당 분배는 [`docs/api/FBGrowth_API_담당_분배_3-2-2-2-1.md`](docs/api/FBGrowth_API_담당_분배_3-2-2-2-1.md)에 있습니다.
+담당별 상세 작업은 [`docs/todo/`](docs/todo)에 있습니다.
 
 ---
 
@@ -81,7 +79,160 @@ QR 로그인 → 룰렛 쿠폰 → AI 추천 조합 주문 → 방문·주문 �
 - 룰렛·쿠폰으로 로그인할 동기 만들기 (회원당 하루 1회)
 - 인원·예산·취향을 고르면 세트 조합과 할인가를 바로 보여 주는 AI 추천
 - 신규·재방문·단골·휴면 등급과 매출 통계로 사장님의 마케팅 결정 돕기
+---
 
+## 📚 관련 문서
+
+| 문서 | 내용 |
+|---|---|
+| [`AGENTS.md`](AGENTS.md) | 프로젝트 규칙, 실행·테스트 명령, 제품 규칙, Git 규칙 |
+| [`docs/README.md`](docs/README.md) | docs 폴더 전체 문서 지도 |
+| [`docs/todo/TODO_충돌_오류.md`](docs/todo/TODO_충돌_오류.md) | TODO 구현 중 충돌·오류와 해결 방법 |
+| [`docs/가이드/개발_가이드.md`](docs/가이드/개발_가이드.md) | 새 API 추가 순서, 경로·스키마 변경 규칙 |
+| [`docs/가이드/배포_체크리스트.md`](docs/가이드/배포_체크리스트.md) | 배포 전 확인할 것 |
+| [`docs/가이드/정식_구현_계획.md`](docs/가이드/정식_구현_계획.md) | QR 로그인·솔라피 구현 기준, 카카오/Supabase 설정 |
+| [`docs/가이드/코드_둘러보기.md`](docs/가이드/코드_둘러보기.md) | 폴더 지도와 핵심 코드 설명 |
+| [`docs/가이드/팀_공지.md`](docs/가이드/팀_공지.md) | 팀원 공지, 어떤 문서를 언제 보는지 |
+| [`docs/기능흐름/기능흐름_개발자.md`](docs/기능흐름/기능흐름_개발자.md) | 개발자 관점 기능 흐름 |
+| [`docs/기능흐름/기능흐름_손님_관리자.md`](docs/기능흐름/기능흐름_손님_관리자.md) | 손님·사장님 관점 기능 흐름 |
+| [`docs/설계/API_설계.md`](docs/설계/API_설계.md) | API 설계 (엔드포인트별 요청·응답·인증) |
+| [`docs/설계/DB_설계.md`](docs/설계/DB_설계.md) | DB 설계 (실행용 SQL: `docs/db/fbgrowth_schema.sql`) |
+| [`docs/설계/화면_설계.md`](docs/설계/화면_설계.md) | 화면 설계 (손님·관리자 화면 구성과 이동 흐름) |
+
+---
+
+## 📦 프로젝트 구성
+
+```
+table-order
+├── backend/   → FastAPI 서버 (core / routers / services / stores / seed)
+├── user/      → 손님 Streamlit 화면
+├── admin/     → 관리자 Streamlit 화면
+├── shared/    → 두 화면이 같이 쓰는 API 호출 코드
+├── tests/     → 화면·통합 테스트
+├── tools/     → 시연 데이터 시드·내보내기 스크립트
+└── docs/      → 설계·흐름·TODO 문서
+```
+
+화면 코드는 `app.py`(진입점)와 역할별 폴더로 나눕니다. 폴더 이름을 `pages`가 아니라 `views`로 쓰는 이유는 Streamlit이 `pages/`를 자동 멀티페이지로 인식하기 때문입니다.
+
+| 폴더 | 역할 | 백엔드의 대응 계층 |
+|---|---|---|
+| `views/` | 화면 하나를 조립하는 함수 (`page_*`, `render_*`) | `routers/` |
+| `ui/` | 여러 화면이 같이 쓰는 UI 조각·다이얼로그 | - |
+| `state/` | `st.session_state` 조작과 계산 (장바구니·로그인·퀴즈 등) | `services/` |
+| `shared/api.py`, `*_repository.py` | 서버/예시 데이터 호출 | `stores/` |
+---
+
+## 🛠 기술 스택
+
+**Frontend (손님 · 관리자 화면)**
+| 기술 | 용도 |
+|---|---|
+| Python / Streamlit | 손님 태블릿 화면, 관리자 화면 |
+| httpx | 화면 → 서버 API 호출 |
+| qrcode / Pillow | 로그인 QR 이미지 생성 |
+
+**Backend**
+| 기술 | 용도 |
+|---|---|
+| Python 3.12+ / FastAPI | REST API (손님 `/api/...`, 관리자 `/admin/api/...`) |
+| Pydantic Settings | 환경변수 설정 |
+| PyJWT | 로그인 회원증(JWT) 발급 |
+| uv | 패키지 관리 |
+| Pytest | 서버·화면·통합 테스트 |
+
+**Database / Auth**
+| 기술 | 용도 |
+|---|---|
+| Supabase (PostgreSQL) / psycopg | 운영 DB (개발 기본값은 로컬 SQLite) |
+| 카카오 로그인 (OAuth) | 손님 QR 로그인 |
+| Supabase Auth | 사장님(관리자) 이메일·비밀번호 로그인 (`owners` 등록 계정) |
+
+**외부 API**
+| 기술 | 용도 |
+|---|---|
+| Google Gemini (무료 API) | 관리자 AI 챗봇, AI 문자 후보 |
+| 솔라피 (Solapi) | 마케팅 문자 발송 (`SMS_DRY_RUN=true`면 기록만) |
+| 서울 열린데이터광장 | 오늘 행사 문구 |
+| Open-Meteo | 현재 날씨 (손님 AI 질문·관리자 화면, 실패 시 DB 값) |
+---
+
+## 🏗 시스템 아키텍처
+
+```mermaid
+flowchart TB
+    subgraph Client["화면 (Streamlit)"]
+        U["🍺 손님 태블릿 · user/ :8501<br/>룰렛 · 메뉴 · AI 추천 · 주문"]
+        A["🧑‍🍳 사장님 PC · admin/ :8502<br/>대시보드 · 고객 · 마케팅"]
+    end
+    P["📱 손님 휴대폰"]
+    subgraph Server["FastAPI 서버 · backend/ :8000"]
+        R["routers"] --> S["services"] --> ST["stores<br/>(SQL은 여기서만)"]
+    end
+    U -- "user_repository.py" --> R
+    A -- "admin_repository.py" --> R
+    P -- "QR 스캔 · 카카오 로그인" --> R
+    ST --> DB[("Supabase<br/>PostgreSQL")]
+    S --> K["카카오 로그인"]
+    S --> SMS["솔라피 문자"]
+    S --> G["Google Gemini"]
+```
+
+- 화면 코드는 서버 API를 직접 부르지 않고 `user/user_repository.py`, `admin/admin_repository.py`만 부릅니다.
+- 서버가 꺼져 있으면 화면은 예시 데이터로 동작합니다(`DATA_SOURCE=auto`). 이때 주문·호출은 저장되지 않습니다.
+---
+
+## 🔄 서비스 이용 흐름
+
+**손님**
+1. 테이블 태블릿(`?table=12`)에서 첫 화면을 엽니다. 로그인 없이 "비회원 주문"도 할 수 있습니다.
+2. "📱 로그인" → 휴대폰으로 QR 스캔 → 카카오 로그인
+3. 룰렛을 돌려 쿠폰을 받습니다 (회원당 하루 1회).
+4. 메뉴를 고르거나 💬 AI 질문으로 추천 조합을 받습니다.
+5. 쿠폰함에서 쿠폰을 적용하고 주문합니다.
+
+**사장님**
+1. 관리자 화면에서 오늘 매출과 인기 메뉴를 봅니다.
+2. 메뉴 품절·가격·추천 가중치, 룰렛 확률을 바꿉니다.
+3. 고객 등급을 확인하고, 등급별 문자를 보내 재방문을 이끕니다.
+---
+
+## 🚀 실행 방법
+
+```bash
+# 서버 (http://127.0.0.1:8000/docs)
+cd backend
+cp .env.example .env
+uv sync
+uv run fastapi dev main.py
+
+# 화면 (저장소 루트에서, 서버가 켜져 있어야 QR 로그인·문자 발송이 동작)
+uv venv .venv
+source .venv/Scripts/activate   # macOS/Linux 는 source .venv/bin/activate
+uv pip install -r requirements.txt
+streamlit run user/app.py --server.port 8501    # 손님 (?table=12 로 테이블 지정)
+streamlit run admin/app.py --server.port 8502   # 관리자
+```
+
+- `backend/.env`의 `APP_ENV=dev`면 손님 화면은 모의 회원으로 자동 로그인하고, 관리자 화면은 토큰 입력을 생략합니다(끄려면 `ADMIN_SKIP_TOKEN=0`, 토큰은 `ADMIN_TOKEN`). dev가 아니면 우회는 없습니다. 운영 배포에서는 `dev`로 두지 마세요.
+- 관리자 로그인: `SUPABASE_URL`·`SUPABASE_ANON_KEY`가 있으면 로그인 화면이 사장님 이메일·비밀번호 로그인(`POST /api/auth/owner/login`)으로 바뀝니다. 계정은 Supabase Auth에 만든 뒤 `docs/db/fbgrowth_owner_add.sql`로 `owners`에 등록합니다. `ADMIN_TOKEN`은 개발용이라 `APP_ENV=prod`에서 Supabase가 설정되어 있으면 거부됩니다.
+- 서버 기본 DB는 로컬 SQLite(`backend/app.db`)이고 `DATABASE_URL`에 Supabase(PostgreSQL) 주소를 넣으면 바뀝니다. 스키마를 바꿨다면 기존 `app.db`를 지우고 서버를 다시 켜세요. 화면은 `API_URL`·`DATA_SOURCE`(dummy=예시 데이터/api/auto) 환경변수로 서버 연결을 정합니다.
+- 휴대폰으로 QR 로그인을 시험하려면 `PUBLIC_BASE_URL`을 서버 PC 주소(예: `http://192.168.0.10:8000`)로 두고 `--host 0.0.0.0`으로 실행하세요. 카카오 키가 없으면 모의 로그인 화면이 열립니다.
+- 문자는 솔라피로 보내며 `SOLAPI_API_KEY`·`SOLAPI_API_SECRET`·`SOLAPI_SENDER_NUMBER`·`SMS_OPT_OUT_NUMBER`(무료수신거부 번호)가 필요합니다. `SMS_DRY_RUN=true`(기본)면 실제 전송 없이 기록만 남깁니다.
+- 문자 발송 테스트 (관리자 토큰 필수, 번호 1건 즉시 발송, 본문 앞에 `[테스트]`가 붙음):
+  ```bash
+  curl -X POST http://localhost:8000/admin/api/sms/test \
+    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
+    -d '{"phone": "010-1234-5678", "body": "테스트 문자입니다"}'
+  # → {"ok": true, "dry_run": true, "type": "SMS", "request_id": "dryrun-...", "to": "01012345678"}
+  ```
+
+**테스트**
+```bash
+cd backend && uv run pytest -q   # 서버
+python -m pytest tests -q        # 화면·통합 (저장소 루트에서)
+```
 ---
 
 ## 🌟 주요 기능
@@ -155,9 +306,8 @@ QR 로그인 → 룰렛 쿠폰 → AI 추천 조합 주문 → 방문·주문 �
 - **메뉴 관리 · 추천 가중치**: 카테고리별 메뉴, 가격, 품절, AI 추천에 쓰는 메뉴별 가중치(0~100)를 관리합니다.
 - **이벤트**: 룰렛 칸(할인/서비스 메뉴), 할인율, 당첨 확률, 색상을 바꾸고 미리봅니다.
 - **고객 등급**: 방문 기록으로 신규·재방문·단골·휴면을 나누고, 등급 기준을 바꿔 미리본 뒤 저장합니다.
-- **주문 이력 · 직원 호출**: 지난 주문과 처리 대기 중인 직원 호출을 확인합니다.
+- **주문 이력**: 기간·조건별로 지난 주문을 확인합니다.
 - **마케팅**: 수신 동의한 회원에게 등급별로 문자를 보냅니다(솔라피). 이번 달 발송량과 잔액, 발송 내역, 수신거부를 함께 관리합니다.
-
 ---
 
 ## 🤖 AI 기능
@@ -215,173 +365,3 @@ AI는 손님 쪽 추천과 사장님 쪽 마케팅 두 곳에서 씁니다. 별�
 - 오른쪽 휴대폰 미리보기로 실제 문자 모양을 확인하고, 바이트 수에 따라 SMS/LMS와 이번 달 무료 잔여 건수를 보여 줍니다.
 - 광고 문자 표기와 무료수신거부 번호를 자동으로 붙이고, 수신 동의한 회원에게만 보냅니다. 예약 발송도 할 수 있습니다.
 - `GEMINI_API_KEY`가 없으면 템플릿 문구를 쓰고, `SMS_DRY_RUN=true`(기본)면 실제 전송 없이 기록만 남깁니다.
-
----
-
-## 🔄 서비스 이용 흐름
-
-**손님**
-1. 테이블 태블릿(`?table=12`)에서 첫 화면을 엽니다. 로그인 없이 "비회원 주문"도 할 수 있습니다.
-2. "📱 로그인" → 휴대폰으로 QR 스캔 → 카카오 로그인
-3. 룰렛을 돌려 쿠폰을 받습니다 (회원당 하루 1회).
-4. 메뉴를 고르거나 💬 AI 질문으로 추천 조합을 받습니다.
-5. 쿠폰함에서 쿠폰을 적용하고 주문합니다.
-
-**사장님**
-1. 관리자 화면에서 오늘 매출과 인기 메뉴를 봅니다.
-2. 메뉴 품절·가격·추천 가중치, 룰렛 확률을 바꿉니다.
-3. 고객 등급을 확인하고, 등급별 문자를 보내 재방문을 이끕니다.
-
----
-
-## 🛠 기술 스택
-
-**Frontend (손님 · 관리자 화면)**
-| 기술 | 용도 |
-|---|---|
-| Python / Streamlit | 손님 태블릿 화면, 관리자 화면 |
-| httpx | 화면 → 서버 API 호출 |
-| qrcode / Pillow | 로그인 QR 이미지 생성 |
-
-**Backend**
-| 기술 | 용도 |
-|---|---|
-| Python 3.12+ / FastAPI | REST API (손님 `/api/...`, 관리자 `/admin/api/...`) |
-| Pydantic Settings | 환경변수 설정 |
-| PyJWT | 로그인 회원증(JWT) 발급 |
-| uv | 패키지 관리 |
-| Pytest | 서버·화면·통합 테스트 |
-
-**Database / Auth**
-| 기술 | 용도 |
-|---|---|
-| Supabase (PostgreSQL) / psycopg | 운영 DB (개발 기본값은 로컬 SQLite) |
-| 카카오 로그인 (OAuth) | 손님 QR 로그인 |
-| Supabase Auth | 사장님(관리자) 이메일·비밀번호 로그인 (`owners` 등록 계정) |
-
-**외부 API**
-| 기술 | 용도 |
-|---|---|
-| Google Gemini (무료 API) | 관리자 AI 챗봇, AI 문자 후보 |
-| 솔라피 (Solapi) | 마케팅 문자 발송 (`SMS_DRY_RUN=true`면 기록만) |
-| 서울 열린데이터광장 | 오늘 행사 문구 |
-| Open-Meteo | 현재 날씨 (손님 AI 질문·관리자 화면, 실패 시 DB 값) |
-
----
-
-## 🏗 시스템 아키텍처
-
-```mermaid
-flowchart TB
-    subgraph Client["화면 (Streamlit)"]
-        U["🍺 손님 태블릿 · user/ :8501<br/>룰렛 · 메뉴 · AI 추천 · 주문"]
-        A["🧑‍🍳 사장님 PC · admin/ :8502<br/>대시보드 · 고객 · 마케팅"]
-    end
-    P["📱 손님 휴대폰"]
-    subgraph Server["FastAPI 서버 · backend/ :8000"]
-        R["routers"] --> S["services"] --> ST["stores<br/>(SQL은 여기서만)"]
-    end
-    U -- "user_repository.py" --> R
-    A -- "admin_repository.py" --> R
-    P -- "QR 스캔 · 카카오 로그인" --> R
-    ST --> DB[("Supabase<br/>PostgreSQL")]
-    S --> K["카카오 로그인"]
-    S --> SMS["솔라피 문자"]
-    S --> G["Google Gemini"]
-```
-
-- 화면 코드는 서버 API를 직접 부르지 않고 `user/user_repository.py`, `admin/admin_repository.py`만 부릅니다.
-- 서버가 꺼져 있으면 화면은 더미 데이터로 동작합니다(`DATA_SOURCE=auto`). 이때 주문·호출은 저장되지 않습니다.
-
----
-
-## 📦 프로젝트 구성
-
-```
-table-order
-├── backend/   → FastAPI 서버 (core / routers / services / stores / seed)
-├── user/      → 손님 Streamlit 화면
-├── admin/     → 관리자 Streamlit 화면
-├── shared/    → 두 화면이 같이 쓰는 API 호출 코드
-├── tests/     → 화면·통합 테스트
-├── tools/     → 시연 데이터 시드·내보내기 스크립트
-└── docs/      → 설계·흐름·TODO 문서
-```
-
-화면 코드는 `app.py`(진입점)와 역할별 폴더로 나눕니다. 폴더 이름을 `pages`가 아니라 `views`로 쓰는 이유는 Streamlit이 `pages/`를 자동 멀티페이지로 인식하기 때문입니다.
-
-| 폴더 | 역할 | 백엔드의 대응 계층 |
-|---|---|---|
-| `views/` | 화면 하나를 조립하는 함수 (`page_*`, `render_*`) | `routers/` |
-| `ui/` | 여러 화면이 같이 쓰는 UI 조각·다이얼로그 | - |
-| `state/` | `st.session_state` 조작과 계산 (장바구니·로그인·퀴즈 등) | `services/` |
-| `shared/api.py`, `*_repository.py` | 서버/더미 데이터 호출 | `stores/` |
-
----
-
-## 🚀 실행 방법
-
-```bash
-# 서버 (http://127.0.0.1:8000/docs)
-cd backend
-cp .env.example .env
-uv sync
-uv run fastapi dev main.py
-
-# 화면 (저장소 루트에서, 서버가 켜져 있어야 QR 로그인·문자 발송이 동작)
-uv venv .venv
-source .venv/Scripts/activate   # macOS/Linux 는 source .venv/bin/activate
-uv pip install -r requirements.txt
-streamlit run user/app.py --server.port 8501    # 손님 (?table=12 로 테이블 지정)
-streamlit run admin/app.py --server.port 8502   # 관리자
-```
-
-- `backend/.env`의 `APP_ENV=dev`면 손님 화면은 모의 회원으로 자동 로그인하고, 관리자 화면은 토큰 입력을 생략합니다(끄려면 `ADMIN_SKIP_TOKEN=0`, 토큰은 `ADMIN_TOKEN`). dev가 아니면 우회는 없습니다. 운영 배포에서는 `dev`로 두지 마세요.
-- 관리자 로그인: `SUPABASE_URL`·`SUPABASE_ANON_KEY`가 있으면 로그인 화면이 사장님 이메일·비밀번호 로그인(`POST /api/auth/owner/login`)으로 바뀝니다. 계정은 Supabase Auth에 만든 뒤 `docs/db/fbgrowth_owner_add.sql`로 `owners`에 등록합니다. `ADMIN_TOKEN`은 개발용이라 `APP_ENV=prod`에서 Supabase가 설정되어 있으면 거부됩니다.
-- 서버 기본 DB는 로컬 SQLite(`backend/app.db`)이고 `DATABASE_URL`에 Supabase(PostgreSQL) 주소를 넣으면 바뀝니다. 스키마를 바꿨다면 기존 `app.db`를 지우고 서버를 다시 켜세요. 화면은 `API_URL`·`DATA_SOURCE`(dummy/api/auto) 환경변수로 서버 연결을 정합니다.
-- 휴대폰으로 QR 로그인을 시험하려면 `PUBLIC_BASE_URL`을 서버 PC 주소(예: `http://192.168.0.10:8000`)로 두고 `--host 0.0.0.0`으로 실행하세요. 카카오 키가 없으면 모의 로그인 화면이 열립니다.
-- 문자는 솔라피로 보내며 `SOLAPI_API_KEY`·`SOLAPI_API_SECRET`·`SOLAPI_SENDER_NUMBER`·`SMS_OPT_OUT_NUMBER`(무료수신거부 번호)가 필요합니다. `SMS_DRY_RUN=true`(기본)면 실제 전송 없이 기록만 남깁니다.
-- 문자 발송 테스트 (관리자 토큰 필수, 번호 1건 즉시 발송, 본문 앞에 `[테스트]`가 붙음):
-  ```bash
-  curl -X POST http://localhost:8000/admin/api/sms/test \
-    -H "Authorization: Bearer $ADMIN_TOKEN" -H "Content-Type: application/json" \
-    -d '{"phone": "010-1234-5678", "body": "테스트 문자입니다"}'
-  # → {"ok": true, "dry_run": true, "type": "SMS", "request_id": "dryrun-...", "to": "01012345678"}
-  ```
-
-**테스트**
-```bash
-cd backend && uv run pytest -q   # 서버
-python -m pytest tests -q        # 화면·통합 (저장소 루트에서)
-```
-
----
-
-## 📊 구현 현황
-
-더미 응답은 모두 실제 DB 구현으로 바뀌었습니다.
-
-| 상태 | 기능 |
-|---|---|
-| ✅ 실제 DB 연동 | QR 로그인·회원, 사장님 로그인(Supabase Auth), 룰렛·쿠폰, 주문·주문 이력, 메뉴·카테고리·품절·추천 가중치, 직원 호출, 손님 AI 추천, 문자 발송(솔라피), 고객 목록·등급·수신거부, 대시보드 통계, 단골 응대 제안, AI 마케팅 추천, 룰렛 칸 설정, 관리자 AI 챗봇 |
-
-- 담당별 최신 진행 상태는 [`docs/todo/TODO_*.md`](docs/todo)를 보세요.
-- 위 GIF는 손님 화면은 로컬 서버(SQLite), 관리자 화면은 더미 데이터 모드(`DATA_SOURCE=dummy`)로 촬영했습니다. 그래서 AI 챗봇 GIF의 답은 Gemini가 아닌 규칙 기반 모의 응답이고, 문자는 DRY RUN으로 처리됐습니다.
-
----
-
-## 📚 관련 문서
-
-| 문서 | 내용 |
-|---|---|
-| [`AGENTS.md`](AGENTS.md) | 프로젝트 규칙, 실행·테스트 명령, 제품 규칙, Git 규칙 |
-| [`docs/팀_공지.md`](docs/팀_공지.md) | 팀원 공지, 어떤 문서를 언제 보는지 |
-| [`docs/기능흐름_손님_관리자.md`](docs/기능흐름_손님_관리자.md) | 손님·사장님 관점 기능 흐름 |
-| [`docs/기능흐름_개발자.md`](docs/기능흐름_개발자.md) | 개발자 관점 기능 흐름 |
-| [`docs/코드_둘러보기.md`](docs/코드_둘러보기.md) | 폴더 지도와 핵심 코드 설명 |
-| [`docs/개발_가이드.md`](docs/개발_가이드.md) | 새 API 추가 순서, 경로·스키마 변경 규칙 |
-| [`docs/DB_설계.md`](docs/DB_설계.md) | DB 설계 (실행용 SQL: `docs/db/fbgrowth_schema.sql`) |
-| [`docs/정식_구현_계획.md`](docs/정식_구현_계획.md) | QR 로그인·솔라피 구현 기준, 카카오/Supabase 설정 |
-| [`docs/배포_체크리스트.md`](docs/배포_체크리스트.md) | 배포 전 확인할 것 |
-| [`docs/TODO_충돌_오류.md`](docs/TODO_충돌_오류.md) | TODO 구현 중 충돌·오류와 해결 방법 |
-| [`docs/api/`](docs/api) | API 경로 기준(v7), 담당 분배표 |

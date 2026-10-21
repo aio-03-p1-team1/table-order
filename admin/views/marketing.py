@@ -328,11 +328,24 @@ def _render_table_map(repo, preferences):
                     + line("취향", tip["taste"]) + line("근거", tip["reason"])
                     + line("추천 행동", tip["action"]) + line("멘트", f"“{tip['note']}”") + '</div>')
 
-        # 확인한 카드는 화면 세션에 기억한다(카드마다 테이블·손님·주문 내용으로 구분). 새로 고침하면 다시 미확인이 된다.
-        done = ss.setdefault("mk_tip_done", set())
-        keys = {number: f"{number}|{suggestions[number]['nickname']}|{suggestions[number]['order']}" for number in order}
-        waiting = [number for number in order if keys[number] not in done]
-        checked = [number for number in order if keys[number] in done]
+        # 확인 여부는 DB에 저장된 값(tip["checked"])을 쓰되, 방금 누른 것은 화면 세션(mk_tip_state)이 먼저 반영한다.
+        # (받아 둔 제안 목록은 최대 1분 캐시되므로, 누른 직후에도 카드가 바로 옮겨 가게 하려는 것이다.)
+        state = ss.setdefault("mk_tip_state", {})
+        keys = {number: f"{suggestions[number]['member_id']}:{suggestions[number]['order_id']}" for number in order}
+        is_done = lambda number: state.get(keys[number], suggestions[number]["checked"])
+        waiting = [number for number in order if not is_done(number)]
+        checked = [number for number in order if is_done(number)]
+
+        def save_check(number, value):
+            """DB에 확인 여부를 저장하고 화면 상태에도 반영한다. 저장에 실패하면 안내만 하고 카드는 그대로 둔다."""
+            tip = suggestions[number]
+            try:
+                repo.set_tip_checked(tip["member_id"], tip["order_id"], value)
+            except (repo_mod.api.ApiError, repo_mod.api.ApiUnavailable):
+                st.toast("확인 상태를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.", icon="⚠️")
+                return
+            state[keys[number]] = value
+            st.rerun(scope="fragment")  # 이 영역만 다시 그려 카드가 반대 영역으로 이동한다
 
         # 제안이 많아도 화면이 길어지지 않게 오른쪽 영역 안에서 스크롤한다
         with st.container(height=460, border=False):
@@ -343,8 +356,7 @@ def _render_table_map(repo, preferences):
                 for number in waiting:
                     st.html(card_html(number, suggestions[number]))
                     if st.button("확인", key=f"mk_tip_ok_{keys[number]}"):
-                        done.add(keys[number])
-                        st.rerun(scope="fragment")  # 이 영역만 다시 그려 카드가 확인 영역으로 이동한다
+                        save_check(number, True)
             # 확인 영역: 이미 확인한 카드. 실수로 눌렀다면 '미확인으로 되돌리기'를 쓴다
             with st.expander(f"확인 ({len(checked)})", expanded=False):
                 if not checked:
@@ -352,8 +364,7 @@ def _render_table_map(repo, preferences):
                 for number in checked:
                     st.html(card_html(number, suggestions[number]))
                     if st.button("미확인으로 되돌리기", key=f"mk_tip_undo_{keys[number]}"):
-                        done.discard(keys[number])
-                        st.rerun(scope="fragment")
+                        save_check(number, False)
 
 
 @st.fragment(run_every=POLL_SECONDS)  # 이 영역만 POLL_SECONDS 초마다 다시 실행해 새 로그인·주문을 확인한다
